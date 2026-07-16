@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h1>Dashboard</h1>
+
+<p class="text-muted">
+    Welcome back, Michael!
+</p>
+
+<div class="row">
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5>Series</h5>
+                <h2>{{ series }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5>Sets</h5>
+                <h2>{{ sets }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5>Cards</h5>
+                <h2>{{ cards }}</h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

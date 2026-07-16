@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h1 class="mb-4">My Collection</h1>
+
+<table class="table table-striped table-hover align-middle">
+
+    <thead class="table-light">
+        <tr>
+            <th>Image</th>
+            <th>Card</th>
+            <th>Details</th>
+            <th>Location</th>
+            <th>Quantity</th>
+            <th>Favorite</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+    {% for card in cards %}
+
+    <tr>
+
+        <td width="100">
+            <img src="{{ card.image_small }}"
+                 width="80"
+                 class="rounded shadow-sm">
+        </td>
+
+        <td>
+            <strong>{{ card.name }}</strong>
+        </td>
+
+        <td>
+            <small>
+                <strong>#{{ card.number }}</strong><br>
+                {{ card.category }}<br>
+
+                {% if card.hp %}
+                    HP {{ card.hp }}<br>
+                {% endif %}
+
+                {{ card.rarity }}<br>
+
+                {% if card.artist %}
+                    <em>{{ card.artist }}</em>
+                {% endif %}
+            </small>
+        </td>
+
+        <td>
+            {{ card.location }}
+        </td>
+
+        <td>
+            {{ card.quantity }}
+        </td>
+
+        <td class="text-center">
+            {% if card.favorite %}
+                ⭐
+            {% endif %}
+        </td>
+
+    </tr>
+
+    {% endfor %}
+
+    </tbody>
+
+</table>
+
+{% endblock %}
