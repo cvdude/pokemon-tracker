@@ -9,7 +9,6 @@ from models.collection import DEFAULT_CONDITION, DEFAULT_LANGUAGE, DEFAULT_LOCAT
 
 
 inventory = Blueprint("inventory", __name__)
-
 CONDITIONS = {"Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played", "Damaged"}
 VARIANTS = {"Normal", "Holo", "Reverse Holo", "1st Edition", "Shadowless", "Promo"}
 LANGUAGES = {"English", "Japanese"}
@@ -22,84 +21,54 @@ def get_connection():
 
 
 def get_count(cur, card_id):
-    return cur.execute(
-        "SELECT COALESCE(SUM(quantity), 0) FROM collection_items WHERE user_id = ? AND card_id = ?",
-        (DEFAULT_USER_ID, card_id),
-    ).fetchone()[0]
+    return cur.execute("SELECT COALESCE(SUM(quantity), 0) FROM collection_items WHERE user_id = ? AND card_id = ?", (DEFAULT_USER_ID, card_id)).fetchone()[0]
 
 
 def request_data():
     return request.get_json(silent=True) or request.form.to_dict()
 
 
-def parse_quantity(value, default=1):
-    if value in (None, ""):
-        return default, None
+def collection_fields(data):
     try:
-        quantity = int(value)
+        quantity = int(data.get("quantity", 1))
     except (TypeError, ValueError):
         return None, "Quantity must be a whole number."
-    return (quantity, None) if 1 <= quantity <= 1000 else (None, "Quantity must be between 1 and 1000.")
-
-
-def parse_price(value):
-    if value in (None, ""):
-        return None, None
-    try:
-        value = Decimal(str(value))
-    except (InvalidOperation, ValueError):
-        return None, "Purchase price must be a valid number."
-    return (float(value), None) if value >= 0 else (None, "Purchase price cannot be negative.")
-
-
-def parse_date(value):
-    if value in (None, ""):
-        return date.today().isoformat(), None
-    try:
-        return date.fromisoformat(value).isoformat(), None
-    except (TypeError, ValueError):
-        return None, "Date acquired must use YYYY-MM-DD."
-
-
-def selected_value(data, field, allowed, default):
-    value = (data.get(field) or default).strip()
-    if value != "Other":
-        return (value, None) if value in allowed else (None, f"Invalid {field}.")
-    other = (data.get(f"{field}_other") or "").strip()[:100]
-    return (f"Other: {other}", None) if other else (None, f"Specify the other {field}.")
-
-
-def collection_fields(data, include_quantity=True):
-    quantity, error = parse_quantity(data.get("quantity")) if include_quantity else (None, None)
-    if error:
-        return None, error
-    price, error = parse_price(data.get("purchase_price"))
-    if error:
-        return None, error
-    acquired, error = parse_date(data.get("acquisition_date"))
-    if error:
-        return None, error
+    if not 1 <= quantity <= 1000:
+        return None, "Quantity must be between 1 and 1000."
     condition = (data.get("condition") or DEFAULT_CONDITION).strip()
     if condition not in CONDITIONS:
-        return None, "Invalid condition."
-    variant, error = selected_value(data, "variant", VARIANTS, "Normal")
-    if error:
-        return None, error
-    language, error = selected_value(data, "language", LANGUAGES, DEFAULT_LANGUAGE)
-    if error:
-        return None, error
+        return None, "Select a valid condition."
+    fields = {"quantity": quantity, "condition": condition}
+    for field, allowed, default in (("variant", VARIANTS, "Normal"), ("language", LANGUAGES, DEFAULT_LANGUAGE)):
+        value = (data.get(field) or default).strip()
+        if value == "Other":
+            other = (data.get(f"{field}_other") or "").strip()[:100]
+            if not other:
+                return None, f"Specify the other {field}."
+            value = f"Other: {other}"
+        elif value not in allowed:
+            return None, f"Select a valid {field}."
+        fields[field] = value
     location = (data.get("storage_location") or DEFAULT_LOCATION).strip()[:100]
     if not location:
         return None, "Storage location is required."
-    return {
-        "quantity": quantity, "condition": condition, "variant": variant, "language": language,
-        "storage_location": location, "acquisition_date": acquired, "purchase_price": price,
-        "notes": (data.get("notes") or "").strip()[:2000] or None,
-    }, None
+    try:
+        acquired = date.fromisoformat(data.get("acquisition_date") or date.today().isoformat()).isoformat()
+    except ValueError:
+        return None, "Date acquired must use YYYY-MM-DD."
+    price = data.get("purchase_price")
+    try:
+        price = float(Decimal(str(price))) if price not in (None, "") else None
+    except (InvalidOperation, ValueError):
+        return None, "Purchase price must be a valid number."
+    if price is not None and price < 0:
+        return None, "Purchase price cannot be negative."
+    fields.update({"storage_location": location, "acquisition_date": acquired, "purchase_price": price, "notes": (data.get("notes") or "").strip()[:2000] or None})
+    return fields, None
 
 
-def card_exists(cur, card_id):
-    return cur.execute("SELECT 1 FROM cards WHERE id = ?", (card_id,)).fetchone() is not None
+def item_or_404(cur, item_id):
+    return cur.execute("SELECT * FROM collection_items WHERE id = ? AND user_id = ?", (item_id, DEFAULT_USER_ID)).fetchone()
 
 
 @inventory.route("/inventory/count/<card_id>")
@@ -116,10 +85,7 @@ def inventory_count(card_id):
 def collection_items_for_card(card_id):
     conn = get_connection()
     try:
-        rows = conn.execute(
-            "SELECT * FROM collection_items WHERE user_id = ? AND card_id = ? ORDER BY updated_at DESC, id DESC",
-            (DEFAULT_USER_ID, card_id),
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM collection_items WHERE user_id = ? AND card_id = ? ORDER BY updated_at DESC, id DESC", (DEFAULT_USER_ID, card_id)).fetchall()
     finally:
         conn.close()
     return jsonify({"items": [dict(row) for row in rows]})
@@ -134,24 +100,15 @@ def add_card(card_id):
     conn = get_connection()
     try:
         cur = conn.cursor()
-        if not card_exists(cur, card_id):
-            return jsonify({"success": False, "error": "Card not found"}), 404
-        cur.execute(
-            """
-            INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, language, storage_location, acquisition_date, purchase_price, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(user_id, card_id, variant, condition, language, storage_location) DO UPDATE SET
-                quantity = collection_items.quantity + excluded.quantity,
-                acquisition_date = excluded.acquisition_date, purchase_price = COALESCE(excluded.purchase_price, collection_items.purchase_price),
-                notes = COALESCE(excluded.notes, collection_items.notes), updated_at = CURRENT_TIMESTAMP
-            """,
-            (DEFAULT_USER_ID, card_id, fields["quantity"], fields["condition"], fields["variant"], fields["language"], fields["storage_location"], fields["acquisition_date"], fields["purchase_price"], fields["notes"]),
-        )
+        if cur.execute("SELECT 1 FROM cards WHERE id = ?", (card_id,)).fetchone() is None:
+            return jsonify({"success": False, "error": "Card not found."}), 404
+        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, language, storage_location, acquisition_date, purchase_price, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, card_id, *fields.values()))
+        item_id = cur.lastrowid
         conn.commit()
         count = get_count(cur, card_id)
     finally:
         conn.close()
-    return jsonify({"success": True, "count": count})
+    return jsonify({"success": True, "item_id": item_id, "count": count}), 201
 
 
 @inventory.route("/inventory/remove/<card_id>", methods=["POST"])
@@ -159,15 +116,12 @@ def remove_card(card_id):
     conn = get_connection()
     try:
         cur = conn.cursor()
-        row = cur.execute(
-            "SELECT id, quantity FROM collection_items WHERE user_id = ? AND card_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1",
-            (DEFAULT_USER_ID, card_id),
-        ).fetchone()
-        if row:
-            if row["quantity"] > 1:
-                cur.execute("UPDATE collection_items SET quantity = quantity - 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (row["id"],))
+        item = cur.execute("SELECT id, quantity FROM collection_items WHERE user_id = ? AND card_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1", (DEFAULT_USER_ID, card_id)).fetchone()
+        if item:
+            if item["quantity"] > 1:
+                cur.execute("UPDATE collection_items SET quantity = quantity - 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (item["id"],))
             else:
-                cur.execute("DELETE FROM collection_items WHERE id = ?", (row["id"],))
+                cur.execute("DELETE FROM collection_items WHERE id = ?", (item["id"],))
             conn.commit()
         count = get_count(cur, card_id)
     finally:
@@ -175,29 +129,40 @@ def remove_card(card_id):
     return jsonify({"success": True, "count": count})
 
 
-@inventory.route("/collection/items/<int:item_id>", methods=["PATCH"])
-def update_collection_item(item_id):
-    data = request_data()
-    fields, error = collection_fields(data, include_quantity="quantity" in data)
-    if error:
-        return jsonify({"success": False, "error": error}), 400
+@inventory.route("/collection/items/<int:item_id>", methods=["PATCH", "DELETE"])
+def collection_item(item_id):
     conn = get_connection()
     try:
         cur = conn.cursor()
-        item = cur.execute("SELECT card_id FROM collection_items WHERE id = ? AND user_id = ?", (item_id, DEFAULT_USER_ID)).fetchone()
+        item = item_or_404(cur, item_id)
         if item is None:
-            return jsonify({"success": False, "error": "Collection item not found"}), 404
-        assignments = ["condition = ?", "variant = ?", "language = ?", "storage_location = ?", "acquisition_date = ?", "purchase_price = ?", "notes = ?", "updated_at = CURRENT_TIMESTAMP"]
-        values = [fields["condition"], fields["variant"], fields["language"], fields["storage_location"], fields["acquisition_date"], fields["purchase_price"], fields["notes"]]
-        if fields["quantity"] is not None:
-            assignments.insert(0, "quantity = ?")
-            values.insert(0, fields["quantity"])
-        try:
-            cur.execute(f"UPDATE collection_items SET {', '.join(assignments)} WHERE id = ? AND user_id = ?", [*values, item_id, DEFAULT_USER_ID])
-        except sqlite3.IntegrityError:
-            return jsonify({"success": False, "error": "An identical collection item already exists."}), 409
+            return jsonify({"success": False, "error": "Collection item not found."}), 404
+        if request.method == "DELETE":
+            cur.execute("DELETE FROM collection_items WHERE id = ?", (item_id,))
+        else:
+            fields, error = collection_fields(request_data())
+            if error:
+                return jsonify({"success": False, "error": error}), 400
+            cur.execute("UPDATE collection_items SET quantity = ?, condition = ?, variant = ?, language = ?, storage_location = ?, acquisition_date = ?, purchase_price = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (*fields.values(), item_id))
         conn.commit()
         count = get_count(cur, item["card_id"])
     finally:
         conn.close()
     return jsonify({"success": True, "count": count})
+
+
+@inventory.route("/collection/items/<int:item_id>/duplicate", methods=["POST"])
+def duplicate_collection_item(item_id):
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        item = item_or_404(cur, item_id)
+        if item is None:
+            return jsonify({"success": False, "error": "Collection item not found."}), 404
+        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, language, storage_location, acquisition_date, purchase_price, notes, is_favorite) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, item["card_id"], item["quantity"], item["condition"], item["variant"], item["language"], item["storage_location"], item["acquisition_date"], item["purchase_price"], item["notes"], item["is_favorite"]))
+        duplicate_id = cur.lastrowid
+        conn.commit()
+        count = get_count(cur, item["card_id"])
+    finally:
+        conn.close()
+    return jsonify({"success": True, "item_id": duplicate_id, "count": count}), 201

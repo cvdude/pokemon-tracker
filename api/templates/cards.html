@@ -21,7 +21,8 @@
         <div class="modal-header"><h5 id="collection-modal-title" class="modal-title">Add to Collection</h5><button type="button" class="btn-close" aria-label="Close" onclick="closeCollectionForm()"></button></div>
         <div class="modal-body">
             <p id="collection-card-name" class="text-muted"></p>
-            <div class="row g-3">
+            <div id="collection-management" class="d-none"></div>
+            <div id="collection-fields" class="row g-3">
                 <div class="col-md-3"><label class="form-label" for="collection-quantity">Quantity</label><input id="collection-quantity" class="form-control" name="quantity" type="number" min="1" max="1000" value="1" required></div>
                 <div class="col-md-3"><label class="form-label" for="collection-condition">Condition</label><select id="collection-condition" class="form-select" name="condition" required><option>Mint</option><option selected>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></div>
                 <div class="col-md-3"><label class="form-label" for="collection-variant">Variant</label><select id="collection-variant" class="form-select" name="variant" required><option selected>Normal</option><option>Holo</option><option>Reverse Holo</option><option>1st Edition</option><option>Shadowless</option><option>Promo</option><option>Other</option></select></div>
@@ -35,7 +36,7 @@
             </div>
             <p id="collection-form-error" class="text-danger small mt-3 mb-0" role="alert"></p>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" onclick="closeCollectionForm()">Cancel</button><button id="collection-submit" type="submit" class="btn btn-success">Save to Collection</button></div>
+        <div class="modal-footer"><button id="collection-back" type="button" class="btn btn-outline-secondary d-none" onclick="showCollectionItems()">Back to copies</button><button type="button" class="btn btn-outline-secondary" onclick="closeCollectionForm()">Cancel</button><button id="collection-submit" type="submit" class="btn btn-success">Save to Collection</button></div>
     </form></div>
 </div>
 <script>

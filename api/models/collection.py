@@ -15,10 +15,10 @@ def get_connection():
     return conn
 
 
-def create_collection_items(conn, table_name="collection_items"):
+def create_collection_items(conn):
     conn.execute(
-        f"""
-        CREATE TABLE {table_name} (
+        """
+        CREATE TABLE collection_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL DEFAULT 1,
             card_id TEXT NOT NULL,
@@ -34,29 +34,28 @@ def create_collection_items(conn, table_name="collection_items"):
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id),
-            FOREIGN KEY (card_id) REFERENCES cards(id),
-            UNIQUE (user_id, card_id, variant, condition, language, storage_location)
+            FOREIGN KEY (card_id) REFERENCES cards(id)
         )
         """
     )
 
 
-def rebuild_collection_items_for_language(conn):
-    """Upgrade the original collection key so language distinguishes copies."""
+def rebuild_collection_items(conn, columns):
+    """Preserve rows while upgrading legacy constrained collection tables."""
     conn.execute("ALTER TABLE collection_items RENAME TO collection_items_legacy")
     create_collection_items(conn)
+    language = "language" if "language" in columns else "'English'"
+    variant = "CASE WHEN COALESCE(variant, '') = '' THEN 'Normal' ELSE variant END"
     conn.execute(
-        """
+        f"""
         INSERT INTO collection_items (
             id, user_id, card_id, quantity, condition, variant, language,
             storage_location, acquisition_date, purchase_price, notes, is_favorite,
             created_at, updated_at
         )
-        SELECT
-            id, user_id, card_id, quantity, condition,
-            CASE WHEN variant = '' THEN 'Normal' ELSE variant END,
-            'English', storage_location, acquisition_date, purchase_price, notes,
-            is_favorite, created_at, updated_at
+        SELECT id, user_id, card_id, quantity, condition, {variant}, {language},
+               storage_location, acquisition_date, purchase_price, notes, is_favorite,
+               created_at, updated_at
         FROM collection_items_legacy
         """
     )
@@ -64,36 +63,28 @@ def rebuild_collection_items_for_language(conn):
 
 
 def ensure_collection_schema():
-    """Create or migrate collection ownership without changing catalog records."""
+    """Create independent collection entries without modifying catalog records."""
     conn = get_connection()
     try:
-        table_exists = conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'collection_items'"
-        ).fetchone()
-        if not table_exists:
+        row = conn.execute("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'collection_items'").fetchone()
+        if row is None:
             create_collection_items(conn)
         else:
-            table_sql = conn.execute(
-                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'collection_items'"
-            ).fetchone()[0] or ""
-            if "language" not in table_sql.lower() or "variant, condition, language, storage_location" not in table_sql.lower():
-                rebuild_collection_items_for_language(conn)
-
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_collection_items_card_user ON collection_items (card_id, user_id)"
-        )
+            columns = {item["name"] for item in conn.execute("PRAGMA table_info(collection_items)")}
+            if "language" not in columns or "UNIQUE" in (row["sql"] or "").upper():
+                rebuild_collection_items(conn, columns)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_card_user ON collection_items (card_id, user_id)")
         conn.execute(
             """
-            INSERT OR IGNORE INTO collection_items (
-                user_id, card_id, quantity, condition, variant, language,
-                storage_location, notes, is_favorite, created_at, updated_at
-            )
+            INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, language, storage_location, notes, is_favorite, created_at, updated_at)
             SELECT i.user_id, i.card_id, i.quantity, 'Near Mint',
                    CASE WHEN COALESCE(i.variant_id, '') = '' THEN 'Normal' ELSE i.variant_id END,
                    'English', COALESCE(l.name, 'Unassigned'), i.notes, i.favorite,
                    COALESCE(i.created_at, CURRENT_TIMESTAMP), COALESCE(i.updated_at, CURRENT_TIMESTAMP)
-            FROM inventory i
-            LEFT JOIN locations l ON l.id = i.location_id
+            FROM inventory i LEFT JOIN locations l ON l.id = i.location_id
+            WHERE NOT EXISTS (
+                SELECT 1 FROM collection_items ci WHERE ci.user_id = i.user_id AND ci.card_id = i.card_id
+            )
             """
         )
         conn.commit()

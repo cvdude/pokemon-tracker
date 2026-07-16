@@ -172,8 +172,7 @@ CREATE TABLE collection_items (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (card_id) REFERENCES cards(id),
-    UNIQUE (user_id, card_id, variant, condition, language, storage_location)
+    FOREIGN KEY (card_id) REFERENCES cards(id)
 );
 
 CREATE INDEX idx_collection_items_card_user

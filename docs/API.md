@@ -80,7 +80,7 @@ Returns the current user’s summed collection quantity for a card.
 
 ### `POST /inventory/add/<card_id>` and `POST /collection/items/<card_id>`
 
-Equivalent add routes. Accept JSON or form fields: `quantity` (1–1000), `condition`, `variant`, `language`, `storage_location`, `acquisition_date` (`YYYY-MM-DD`), `purchase_price`, and `notes`. `condition` is limited to the supported collection conditions; `variant` and `language` also accept `Other` with `variant_other` or `language_other`. Missing optional fields use collection defaults. Equivalent copies are merged by the collection-item unique key.
+Equivalent add routes. Accept JSON or form fields: `quantity` (1–1000), `condition`, `variant`, `language`, `storage_location`, `acquisition_date` (`YYYY-MM-DD`), `purchase_price`, and `notes`. `condition` is limited to the supported collection conditions; `variant` and `language` also accept `Other` with `variant_other` or `language_other`. Each request creates an independent collection entry, including when its card and metadata match an existing entry.
 
 ```json
 {"success": true, "count": 2}
@@ -96,6 +96,14 @@ Removes one copy from the most recently updated collection item for the card, de
 {"success": true, "count": 1}
 ```
 
+### `GET /collection/items/card/<card_id>`
+
+Returns every separate collection entry owned for the card, newest first.
+
+```json
+{"items": [{"id": 12, "quantity": 1, "condition": "Near Mint", "variant": "Normal", "language": "English"}]}
+```
+
 ### `PATCH /collection/items/<item_id>`
 
 Updates one collection item. Accepts the same fields as add; `quantity` is optional for a partial update.
@@ -104,4 +112,12 @@ Updates one collection item. Accepts the same fields as add; `quantity` is optio
 {"success": true, "count": 3}
 ```
 
-Returns `400` for invalid data, `404` for an item outside the current user’s collection, and `409` if the updated fields duplicate another collection item.
+Returns `400` for invalid data and `404` for an item outside the current user’s collection.
+
+### `DELETE /collection/items/<item_id>`
+
+Deletes exactly one collection entry and returns the remaining card quantity: `{"success":true,"count":1}`. Returns `404` when the entry is absent.
+
+### `POST /collection/items/<item_id>/duplicate`
+
+Creates a separate copy of one collection entry, preserving its metadata and quantity. Returns `201` with `{"success":true,"item_id":13,"count":2}`.

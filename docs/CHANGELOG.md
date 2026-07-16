@@ -19,3 +19,7 @@ Added `collection_items`, migrated legacy inventory records, introduced collecti
 ## Collection detail dialog
 
 Replaced immediate add behavior with a validated add/edit modal for quantity, condition, variant, language, storage, price, date acquired, and notes. Collection ownership progress refreshes after every save.
+
+## Complete collection item management
+
+Added full per-card copy management: viewing all entries, independent entry creation, editing, duplication, confirmed deletion, keyboard dialog support, and accurate progress refreshes.
