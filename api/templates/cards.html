@@ -18,7 +18,7 @@
 
 <div id="collection-modal" class="modal" tabindex="-1" style="display:none; background:rgba(0, 0, 0, .5);">
     <div class="modal-dialog modal-lg"><form id="collection-form" class="modal-content">
-        <div class="modal-header"><h5 id="collection-modal-title" class="modal-title">Add to Collection</h5><button type="button" class="btn-close" aria-label="Close" onclick="closeCollectionForm()"></button></div>
+        <div class="modal-header"><h5 id="collection-modal-title" class="modal-title">Add to Collection</h5><button type="button" class="btn-close" aria-label="Close" data-collection-action="close"></button></div>
         <div class="modal-body">
             <p id="collection-card-name" class="text-muted"></p>
             <div id="collection-management" class="d-none"></div>
@@ -36,7 +36,7 @@
             </div>
             <p id="collection-form-error" class="text-danger small mt-3 mb-0" role="alert"></p>
         </div>
-        <div class="modal-footer"><button id="collection-back" type="button" class="btn btn-outline-secondary d-none" onclick="showCollectionItems()">Back to copies</button><button type="button" class="btn btn-outline-secondary" onclick="closeCollectionForm()">Cancel</button><button id="collection-submit" type="submit" class="btn btn-success">Save to Collection</button></div>
+        <div class="modal-footer"><button id="collection-back" type="button" class="btn btn-outline-secondary d-none" data-collection-action="back">Back to copies</button><button type="button" class="btn btn-outline-secondary" data-collection-action="close">Cancel</button><button id="collection-submit" type="submit" class="btn btn-success">Save to Collection</button></div>
     </form></div>
 </div>
 <script>
