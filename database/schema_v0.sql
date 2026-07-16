@@ -155,3 +155,25 @@ CREATE TABLE variants (
     size TEXT,
     FOREIGN KEY(card_id) REFERENCES cards(id)
 );
+
+CREATE TABLE collection_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL DEFAULT 1,
+    card_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    condition TEXT NOT NULL DEFAULT 'Unspecified',
+    variant TEXT NOT NULL DEFAULT '',
+    storage_location TEXT NOT NULL DEFAULT 'Unassigned',
+    acquisition_date TEXT,
+    purchase_price REAL,
+    notes TEXT,
+    is_favorite INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (card_id) REFERENCES cards(id),
+    UNIQUE (user_id, card_id, variant, condition, storage_location)
+);
+
+CREATE INDEX idx_collection_items_card_user
+ON collection_items (card_id, user_id);

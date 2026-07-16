@@ -1,167 +1,79 @@
 {% extends "layout.html" %}
 
 {% block content %}
-
 <div class="container mt-4">
-
     <div class="d-flex justify-content-between align-items-center">
-
         <div>
             <h1 class="mb-1">{{ set_name }}</h1>
-            <p class="text-muted mb-0">
-                {{ total_cards }} Cards
-            </p>
+            <p class="text-muted mb-0">{{ total_cards }} Cards</p>
         </div>
-
     </div>
 
     <div class="card shadow-sm mt-4 mb-4">
-
         <div class="card-body">
-
             <div class="d-flex justify-content-between mb-2">
-
                 <strong>Collection Progress</strong>
-
                 <strong>{{ percent_complete }}%</strong>
-
             </div>
-
             <div class="progress" style="height:24px;">
-
-                <div class="progress-bar bg-success"
-                     role="progressbar"
-                     style="width: {{ percent_complete }}%;">
-
+                <div class="progress-bar bg-success" role="progressbar" style="width: {{ percent_complete }}%;">
                     {{ percent_complete }}%
-
                 </div>
-
             </div>
-
             <div class="row text-center mt-4">
-
-                <div class="col">
-
-                    <h3 class="text-success mb-0">
-
-                        {{ owned_cards }}
-
-                    </h3>
-
-                    <small class="text-muted">
-
-                        Owned
-
-                    </small>
-
-                </div>
-
-                <div class="col">
-
-                    <h3 class="text-danger mb-0">
-
-                        {{ missing_cards }}
-
-                    </h3>
-
-                    <small class="text-muted">
-
-                        Missing
-
-                    </small>
-
-                </div>
-
-                <div class="col">
-
-                    <h3 class="mb-0">
-
-                        {{ total_cards }}
-
-                    </h3>
-
-                    <small class="text-muted">
-
-                        Total
-
-                    </small>
-
-                </div>
-
+                <div class="col"><h3 class="text-success mb-0">{{ owned_cards }}</h3><small class="text-muted">Owned</small></div>
+                <div class="col"><h3 class="text-danger mb-0">{{ missing_cards }}</h3><small class="text-muted">Missing</small></div>
+                <div class="col"><h3 class="mb-0">{{ total_cards }}</h3><small class="text-muted">Total</small></div>
             </div>
-
         </div>
-
     </div>
 
     <div class="mb-4">
-
-        <button class="btn btn-primary me-2" id="filter-all">
-            All
-        </button>
-
-        <button class="btn btn-outline-success me-2" id="filter-owned">
-            Owned
-        </button>
-
-        <button class="btn btn-outline-danger" id="filter-missing">
-            Missing
-        </button>
-
+        <button class="btn btn-primary me-2" id="filter-all">All</button>
+        <button class="btn btn-outline-success me-2" id="filter-owned">Owned</button>
+        <button class="btn btn-outline-danger" id="filter-missing">Missing</button>
     </div>
 
     <div class="row">
-
         {% for card in cards %}
-
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-4 card-container"
-             data-owned="{{ 1 if card.owned > 0 else 0 }}">
-
+        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-4 card-container" data-owned="{{ 1 if card.owned > 0 else 0 }}">
             {% include "components/card_tile.html" %}
-
         </div>
-
         {% endfor %}
-
     </div>
+</div>
 
+<div id="collection-modal" class="modal" tabindex="-1" style="display:none; background:rgba(0, 0, 0, .5);">
+    <div class="modal-dialog modal-lg">
+        <form id="collection-form" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add to Collection</h5>
+                <button type="button" class="btn-close" aria-label="Close" onclick="closeCollectionForm()"></button>
+            </div>
+            <div class="modal-body">
+                <p id="collection-card-name" class="text-muted"></p>
+                <div class="row g-3">
+                    <div class="col-md-3"><label class="form-label">Quantity</label><input class="form-control" name="quantity" type="number" min="1" value="1" required></div>
+                    <div class="col-md-3"><label class="form-label">Condition</label><input class="form-control" name="condition" placeholder="Near Mint"></div>
+                    <div class="col-md-3"><label class="form-label">Variant</label><input class="form-control" name="variant" placeholder="Holo"></div>
+                    <div class="col-md-3"><label class="form-label">Storage location</label><input class="form-control" name="storage_location" placeholder="Set Binder"></div>
+                    <div class="col-md-6"><label class="form-label">Acquisition date</label><input class="form-control" name="acquisition_date" type="date"></div>
+                    <div class="col-md-6"><label class="form-label">Purchase price</label><input class="form-control" name="purchase_price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                    <div class="col-12"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="3"></textarea></div>
+                </div>
+                <p id="collection-form-error" class="text-danger small mt-3 mb-0"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeCollectionForm()">Cancel</button>
+                <button type="submit" class="btn btn-success">Add to Collection</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
-
-    document.getElementById("filter-all").onclick = function () {
-
-        document.querySelectorAll(".card-container").forEach(card => {
-
-            card.style.display = "";
-
-        });
-
-    };
-
-    document.getElementById("filter-owned").onclick = function () {
-
-        document.querySelectorAll(".card-container").forEach(card => {
-
-            card.style.display =
-                card.dataset.owned === "1" ? "" : "none";
-
-        });
-
-    };
-
-    document.getElementById("filter-missing").onclick = function () {
-
-        document.querySelectorAll(".card-container").forEach(card => {
-
-            card.style.display =
-                card.dataset.owned === "0" ? "" : "none";
-
-        });
-
-    };
-
+document.getElementById("filter-all").onclick = () => document.querySelectorAll(".card-container").forEach(card => card.style.display = "");
+document.getElementById("filter-owned").onclick = () => document.querySelectorAll(".card-container").forEach(card => card.style.display = card.dataset.owned === "1" ? "" : "none");
+document.getElementById("filter-missing").onclick = () => document.querySelectorAll(".card-container").forEach(card => card.style.display = card.dataset.owned === "0" ? "" : "none");
 </script>
-
 {% endblock %}
