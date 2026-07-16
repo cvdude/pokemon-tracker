@@ -15,3 +15,7 @@ Added project ignore rules and removed generated Python cache files and server d
 ## Collection engine
 
 Added `collection_items`, migrated legacy inventory records, introduced collection metadata and mutation endpoints, and connected ownership progress to collection data.
+
+## Collection detail dialog
+
+Replaced immediate add behavior with a validated add/edit modal for quantity, condition, variant, language, storage, price, date acquired, and notes. Collection ownership progress refreshes after every save.

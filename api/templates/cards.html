@@ -2,75 +2,42 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1 class="mb-1">{{ set_name }}</h1>
-            <p class="text-muted mb-0">{{ total_cards }} Cards</p>
+    <div><h1 class="mb-1">{{ set_name }}</h1><p class="text-muted mb-0">{{ total_cards }} Cards</p></div>
+    <div class="card shadow-sm mt-4 mb-4"><div class="card-body">
+        <div class="d-flex justify-content-between mb-2"><strong>Collection Progress</strong><strong>{{ percent_complete }}%</strong></div>
+        <div class="progress" style="height:24px;"><div class="progress-bar bg-success" role="progressbar" style="width: {{ percent_complete }}%;">{{ percent_complete }}%</div></div>
+        <div class="row text-center mt-4">
+            <div class="col"><h3 class="text-success mb-0">{{ owned_cards }}</h3><small class="text-muted">Owned</small></div>
+            <div class="col"><h3 class="text-danger mb-0">{{ missing_cards }}</h3><small class="text-muted">Missing</small></div>
+            <div class="col"><h3 class="mb-0">{{ total_cards }}</h3><small class="text-muted">Total</small></div>
         </div>
-    </div>
-
-    <div class="card shadow-sm mt-4 mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between mb-2">
-                <strong>Collection Progress</strong>
-                <strong>{{ percent_complete }}%</strong>
-            </div>
-            <div class="progress" style="height:24px;">
-                <div class="progress-bar bg-success" role="progressbar" style="width: {{ percent_complete }}%;">
-                    {{ percent_complete }}%
-                </div>
-            </div>
-            <div class="row text-center mt-4">
-                <div class="col"><h3 class="text-success mb-0">{{ owned_cards }}</h3><small class="text-muted">Owned</small></div>
-                <div class="col"><h3 class="text-danger mb-0">{{ missing_cards }}</h3><small class="text-muted">Missing</small></div>
-                <div class="col"><h3 class="mb-0">{{ total_cards }}</h3><small class="text-muted">Total</small></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="mb-4">
-        <button class="btn btn-primary me-2" id="filter-all">All</button>
-        <button class="btn btn-outline-success me-2" id="filter-owned">Owned</button>
-        <button class="btn btn-outline-danger" id="filter-missing">Missing</button>
-    </div>
-
-    <div class="row">
-        {% for card in cards %}
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-4 card-container" data-owned="{{ 1 if card.owned > 0 else 0 }}">
-            {% include "components/card_tile.html" %}
-        </div>
-        {% endfor %}
-    </div>
+    </div></div>
+    <div class="mb-4"><button class="btn btn-primary me-2" id="filter-all">All</button><button class="btn btn-outline-success me-2" id="filter-owned">Owned</button><button class="btn btn-outline-danger" id="filter-missing">Missing</button></div>
+    <div class="row">{% for card in cards %}<div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-4 card-container" data-owned="{{ 1 if card.owned > 0 else 0 }}">{% include "components/card_tile.html" %}</div>{% endfor %}</div>
 </div>
 
 <div id="collection-modal" class="modal" tabindex="-1" style="display:none; background:rgba(0, 0, 0, .5);">
-    <div class="modal-dialog modal-lg">
-        <form id="collection-form" class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add to Collection</h5>
-                <button type="button" class="btn-close" aria-label="Close" onclick="closeCollectionForm()"></button>
+    <div class="modal-dialog modal-lg"><form id="collection-form" class="modal-content">
+        <div class="modal-header"><h5 id="collection-modal-title" class="modal-title">Add to Collection</h5><button type="button" class="btn-close" aria-label="Close" onclick="closeCollectionForm()"></button></div>
+        <div class="modal-body">
+            <p id="collection-card-name" class="text-muted"></p>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label" for="collection-quantity">Quantity</label><input id="collection-quantity" class="form-control" name="quantity" type="number" min="1" max="1000" value="1" required></div>
+                <div class="col-md-3"><label class="form-label" for="collection-condition">Condition</label><select id="collection-condition" class="form-select" name="condition" required><option>Mint</option><option selected>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></div>
+                <div class="col-md-3"><label class="form-label" for="collection-variant">Variant</label><select id="collection-variant" class="form-select" name="variant" required><option selected>Normal</option><option>Holo</option><option>Reverse Holo</option><option>1st Edition</option><option>Shadowless</option><option>Promo</option><option>Other</option></select></div>
+                <div id="collection-variant-other-wrap" class="col-md-3 d-none"><label class="form-label" for="collection-variant-other">Other variant</label><input id="collection-variant-other" class="form-control" name="variant_other" maxlength="100"></div>
+                <div class="col-md-3"><label class="form-label" for="collection-language">Language</label><select id="collection-language" class="form-select" name="language" required><option selected>English</option><option>Japanese</option><option>Other</option></select></div>
+                <div id="collection-language-other-wrap" class="col-md-3 d-none"><label class="form-label" for="collection-language-other">Other language</label><input id="collection-language-other" class="form-control" name="language_other" maxlength="100"></div>
+                <div class="col-md-6"><label class="form-label" for="collection-location">Storage location</label><input id="collection-location" class="form-control" name="storage_location" value="Unassigned" maxlength="100" required></div>
+                <div class="col-md-6"><label class="form-label" for="collection-date">Date acquired</label><input id="collection-date" class="form-control" name="acquisition_date" type="date" required></div>
+                <div class="col-md-6"><label class="form-label" for="collection-price">Purchase price</label><input id="collection-price" class="form-control" name="purchase_price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                <div class="col-12"><label class="form-label" for="collection-notes">Notes</label><textarea id="collection-notes" class="form-control" name="notes" rows="3" maxlength="2000"></textarea></div>
             </div>
-            <div class="modal-body">
-                <p id="collection-card-name" class="text-muted"></p>
-                <div class="row g-3">
-                    <div class="col-md-3"><label class="form-label">Quantity</label><input class="form-control" name="quantity" type="number" min="1" value="1" required></div>
-                    <div class="col-md-3"><label class="form-label">Condition</label><input class="form-control" name="condition" placeholder="Near Mint"></div>
-                    <div class="col-md-3"><label class="form-label">Variant</label><input class="form-control" name="variant" placeholder="Holo"></div>
-                    <div class="col-md-3"><label class="form-label">Storage location</label><input class="form-control" name="storage_location" placeholder="Set Binder"></div>
-                    <div class="col-md-6"><label class="form-label">Acquisition date</label><input class="form-control" name="acquisition_date" type="date"></div>
-                    <div class="col-md-6"><label class="form-label">Purchase price</label><input class="form-control" name="purchase_price" type="number" min="0" step="0.01" placeholder="0.00"></div>
-                    <div class="col-12"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="3"></textarea></div>
-                </div>
-                <p id="collection-form-error" class="text-danger small mt-3 mb-0"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" onclick="closeCollectionForm()">Cancel</button>
-                <button type="submit" class="btn btn-success">Add to Collection</button>
-            </div>
-        </form>
-    </div>
+            <p id="collection-form-error" class="text-danger small mt-3 mb-0" role="alert"></p>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" onclick="closeCollectionForm()">Cancel</button><button id="collection-submit" type="submit" class="btn btn-success">Save to Collection</button></div>
+    </form></div>
 </div>
-
 <script>
 document.getElementById("filter-all").onclick = () => document.querySelectorAll(".card-container").forEach(card => card.style.display = "");
 document.getElementById("filter-owned").onclick = () => document.querySelectorAll(".card-container").forEach(card => card.style.display = card.dataset.owned === "1" ? "" : "none");

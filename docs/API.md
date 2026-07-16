@@ -80,7 +80,7 @@ Returns the current user’s summed collection quantity for a card.
 
 ### `POST /inventory/add/<card_id>` and `POST /collection/items/<card_id>`
 
-Equivalent add routes. Accept JSON or form fields: `quantity` (1–1000), `condition`, `variant`, `storage_location`, `acquisition_date` (`YYYY-MM-DD`), `purchase_price`, and `notes`. Missing optional fields use collection defaults. Equivalent copies are merged by the collection-item unique key.
+Equivalent add routes. Accept JSON or form fields: `quantity` (1–1000), `condition`, `variant`, `language`, `storage_location`, `acquisition_date` (`YYYY-MM-DD`), `purchase_price`, and `notes`. `condition` is limited to the supported collection conditions; `variant` and `language` also accept `Other` with `variant_other` or `language_other`. Missing optional fields use collection defaults. Equivalent copies are merged by the collection-item unique key.
 
 ```json
 {"success": true, "count": 2}

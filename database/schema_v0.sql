@@ -161,8 +161,9 @@ CREATE TABLE collection_items (
     user_id INTEGER NOT NULL DEFAULT 1,
     card_id TEXT NOT NULL,
     quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
-    condition TEXT NOT NULL DEFAULT 'Unspecified',
-    variant TEXT NOT NULL DEFAULT '',
+    condition TEXT NOT NULL DEFAULT 'Near Mint',
+    variant TEXT NOT NULL DEFAULT 'Normal',
+    language TEXT NOT NULL DEFAULT 'English',
     storage_location TEXT NOT NULL DEFAULT 'Unassigned',
     acquisition_date TEXT,
     purchase_price REAL,
@@ -172,7 +173,7 @@ CREATE TABLE collection_items (
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (card_id) REFERENCES cards(id),
-    UNIQUE (user_id, card_id, variant, condition, storage_location)
+    UNIQUE (user_id, card_id, variant, condition, language, storage_location)
 );
 
 CREATE INDEX idx_collection_items_card_user
