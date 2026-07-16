@@ -27,6 +27,9 @@ htmlcov/
 instance/
 .webassets-cache/
 
+# Local live data (the baseline schema and backups remain versioned)
+database/pokemon.db
+
 # JavaScript dependencies and logs
 node_modules/
 npm-debug.log*
