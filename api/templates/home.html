@@ -1,42 +1,34 @@
 {% extends "layout.html" %}
 
 {% block content %}
-
-<h1>Dashboard</h1>
-
-<p class="text-muted">
-    Welcome back, Michael!
-</p>
-
-<div class="row">
-
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5>Series</h5>
-                <h2>{{ series }}</h2>
-            </div>
-        </div>
+<div class="container mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+        <div><h1 class="mb-1">Collector Dashboard</h1><p class="text-muted mb-0">Your Pokémon collection at a glance.</p></div>
+        <div class="d-flex gap-2"><a href="/collection" class="btn btn-outline-primary">View Collection</a><a href="/sets" class="btn btn-primary">Browse Sets</a></div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5>Sets</h5>
-                <h2>{{ sets }}</h2>
-            </div>
-        </div>
+    <section class="card shadow-sm mb-4"><div class="card-body">
+        <div class="d-flex justify-content-between mb-2"><strong>Collection Progress</strong><strong>{{ progress }}%</strong></div>
+        <div class="progress" style="height:24px;"><div class="progress-bar bg-success" role="progressbar" style="width:{{ progress }}%;" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">{{ progress }}%</div></div>
+        <p class="text-muted small mb-0 mt-2">{{ owned_cards }} of {{ cards }} catalog cards owned.</p>
+    </div></section>
+
+    <section class="row g-3 mb-4" aria-label="Collection summary">
+        <div class="col-6 col-lg-3"><div class="card h-100 shadow-sm"><div class="card-body"><span class="text-muted small">Unique cards</span><h2 class="mb-0">{{ owned_cards }}</h2><small class="text-muted">of {{ cards }} catalog cards</small></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card h-100 shadow-sm"><div class="card-body"><span class="text-muted small">Total copies</span><h2 class="mb-0">{{ total_copies }}</h2><small class="text-muted">across your collection</small></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card h-100 shadow-sm"><div class="card-body"><span class="text-muted small">Sets started</span><h2 class="mb-0">{{ started_sets }}</h2><small class="text-muted">of {{ sets }} available sets</small></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card h-100 shadow-sm"><div class="card-body"><span class="text-muted small">Purchase total</span><h2 class="mb-0">${{ "%.2f"|format(total_spent) }}</h2><small class="text-muted">from recorded prices</small></div></div></div>
+    </section>
+
+    <div class="row g-4">
+        <section class="col-lg-7"><div class="card shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><h2 class="h5 mb-0">Recent additions</h2><a href="/collection" class="small text-decoration-none">View all</a></div>
+            {% if recent_items %}<div class="list-group list-group-flush">{% for item in recent_items %}<a href="/card/{{ item.card_id }}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3">{% if item.image_small %}<img src="{{ item.image_small }}/low.webp" width="48" height="68" class="rounded shadow-sm" style="object-fit:contain;" alt="{{ item.name }}">{% else %}<div class="border rounded text-muted text-center p-2" style="width:48px;">—</div>{% endif %}<div class="flex-grow-1"><strong>{{ item.name }}</strong><div class="small text-muted">{{ item.set_name }} · #{{ item.number }}{% if item.variant %} · {{ item.variant }}{% endif %}</div></div><span class="badge text-bg-success">×{{ item.quantity }}</span></a>{% endfor %}</div>{% else %}<div class="card-body text-center py-5"><h3 class="h6">Your collection is ready to begin</h3><p class="text-muted mb-3">Add cards from any set to see recent additions here.</p><a href="/sets" class="btn btn-primary">Explore Sets</a></div>{% endif %}
+        </div></section>
+        <section class="col-lg-5"><div class="card shadow-sm h-100"><div class="card-header bg-white d-flex justify-content-between align-items-center"><h2 class="h5 mb-0">Set progress</h2><a href="/sets" class="small text-decoration-none">All sets</a></div>
+            {% if set_progress %}<div class="list-group list-group-flush">{% for set in set_progress %}<a href="/sets/{{ set.id }}" class="list-group-item list-group-item-action py-3"><div class="d-flex justify-content-between gap-3"><strong>{{ set.name }}</strong><span class="text-muted small text-nowrap">{{ set.percent_complete }}%</span></div><div class="progress mt-2" style="height:8px;"><div class="progress-bar bg-success" role="progressbar" style="width:{{ set.percent_complete }}%;" aria-valuenow="{{ set.percent_complete }}" aria-valuemin="0" aria-valuemax="100"></div></div><div class="small text-muted mt-1">{{ set.owned_cards }} of {{ set.card_total }} cards</div></a>{% endfor %}</div>{% else %}<div class="card-body text-center py-5"><h3 class="h6">No sets started</h3><p class="text-muted mb-0">Your started sets will appear here.</p></div>{% endif %}
+        </div></section>
     </div>
 
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5>Cards</h5>
-                <h2>{{ cards }}</h2>
-            </div>
-        </div>
-    </div>
-
+    <p class="small text-muted mt-4 mb-0">Catalog: {{ series }} series · {{ sets }} sets · {{ cards }} cards</p>
 </div>
-
 {% endblock %}

@@ -51,3 +51,7 @@ Added read-only per-set Master Set progress based on imported card-specific vari
 ## Dedicated card detail pages
 
 Expanded the existing card detail route into a complete card workspace with card facts, types, abilities, attack costs, ownership status, and the shared collection-management dialog.
+
+## Collector dashboard
+
+Replaced the catalog-only landing page with collector summaries, collection completion, recent additions, and started-set progress.
