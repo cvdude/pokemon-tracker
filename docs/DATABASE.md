@@ -33,6 +33,7 @@ The application uses SQLite at `database/pokemon.db`. Foreign keys describe the 
 | `collection` | Legacy variant-based collection table. `variant_id` references `variants.id`. It is retained in the baseline schema but is not the active ownership engine. |
 | `collection_items` | Active ownership table. `user_id` references `users.id`; `card_id` references `cards.id`. It stores raw/graded ownership type, condition, variant and custom variant, language, grading company and custom company, grade, certification number, storage, acquisition, price, notes, timestamps, and `is_trade`. It also stores purchase date/source, per-copy purchase price, estimated and previous estimated value, valuation date/source, insurance value, and ISO currency. Each row is an independent owned entry. |
 | `wishlist_items` | User wishlist entries. `user_id` references `users.id`; `card_id` references `cards.id`; nullable `source_variant_id` identifies a specific desired imported variant. It stores priority, desired condition, target price, notes, and timestamps. One user may have one card-level and one row per source variant for the same card. |
+| `backup_history` | Metadata for application-created SQLite snapshots. `filename` identifies a file in `backups/`; `operation`, `created_at`, `file_size`, and `notes` provide a restorable audit history. The snapshot itself remains a full database backup. |
 
 ## Catalog versus collection
 
@@ -50,4 +51,8 @@ Master Set progress is calculated at read time; it adds no ownership or catalog 
 
 ## Runtime migration
 
-At application startup, `ensure_collection_schema()` safely creates or extends `collection_items`, creates `wishlist_items` and its indexes, and adds the trade flag without modifying catalog records. It then copies legacy `inventory` rows into the new table without duplicating equivalent rows. Database and backup files are intentionally retained in the repository.
+At application startup, `ensure_collection_schema()` safely creates or extends `collection_items`, creates `wishlist_items`, `backup_history`, and their indexes without modifying catalog records. It then copies legacy `inventory` rows into the new table without duplicating equivalent rows.
+
+## Backup and import data
+
+Backups are complete SQLite snapshots stored in `backups/`; an automatic snapshot is made before every import and before every restore. The `backup_history` table tracks only snapshots made by EvoDeck. JSON exports use the versioned `evodeck-collection-export` envelope and include only collection and wishlist data, so importing cannot replace catalog tables. CSV exports flatten the same records for spreadsheet use. Imports reject future format versions, validate referenced catalog card IDs, and run all data changes in one transaction; a failed import is rolled back.

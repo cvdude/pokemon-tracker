@@ -12,6 +12,7 @@ All current routes are registered without a URL prefix. HTML routes render Jinja
 | GET | `/sets/<set_id>` | Cards in a set, including collection progress and add controls. Returns 404 when the set is absent. |
 | GET | `/card/<card_id>` | Card-detail page with ability, attacks, weaknesses, resistances, retreat cost, and adjacent cards. Returns 404 when absent. |
 | GET | `/collection` | Advanced collection and catalog search. Supports `q`, `ownership` (`owned`, `missing`, or `all`), `duplicates`, `grading`, `master`, `has_notes`, `sort`, and `order`; filter state is retained in the URL. |
+| GET | `/backup` | Backup, export, import, and restore workspace. |
 
 ## Card API
 
@@ -138,3 +139,25 @@ Sets an owned collection item's trade-list flag. Send `{"is_trade": true}` to ma
 ### `POST /collection/items/<item_id>/duplicate`
 
 Creates a separate copy of one collection entry, preserving its metadata and quantity. Returns `201` with `{"success":true,"item_id":13,"count":2}`.
+
+## Backup and transfer routes
+
+### `GET /backup/export/<export_type>/<format>`
+
+Downloads a versioned JSON or spreadsheet-friendly CSV export. `export_type` is one of `collection`, `inventory`, `wishlist`, `trade`, `purchases`, or `values`; `format` is `json` or `csv`. The JSON envelope has `format`, `format_version`, `export_type`, `exported_at`, and `data` fields for forward-compatible imports.
+
+### `POST /backup/import/preview`
+
+Multipart request with `file` containing an EvoDeck JSON export or CSV export. Returns duplicate and new-row counts without changing data.
+
+```json
+{"success":true,"format_version":1,"preview":{"collection_items":{"rows":2,"duplicates":1,"new_rows":1},"wishlist_items":{"rows":1,"duplicates":0,"new_rows":1}}}
+```
+
+### `POST /backup/import`
+
+Multipart request with `file` and `mode` (`merge` or `replace`). Merge adds quantities for matching collection records; replace removes only the current user's collection and wishlist records before inserting. EvoDeck makes a database backup before either mode and rolls back changes if validation or insertion fails.
+
+### `POST /backup/restore/<backup_id>`
+
+Restores a database snapshot listed in backup history. EvoDeck first saves the current database, then saves an after-restore snapshot. Returns the two snapshot records.

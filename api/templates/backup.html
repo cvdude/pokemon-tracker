@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Backup, Export &amp; Import</h1>
+        <p class="text-muted mb-0">Export your collection, safely import a prior EvoDeck export, or restore a database snapshot.</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">Export collection data</div>
+    <div class="card-body">
+        <p class="small text-muted">JSON preserves all EvoDeck fields and version metadata. CSV is designed for spreadsheets.</p>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Export</th><th>Includes</th><th class="text-end">JSON</th><th class="text-end">CSV</th></tr></thead>
+                <tbody>
+                {% for key, label, description in [
+                    ('collection', 'Entire collection', 'Owned copies and wishlist entries'),
+                    ('inventory', 'Inventory', 'All owned collection entries'),
+                    ('wishlist', 'Wishlist', 'Wanted cards and variants'),
+                    ('trade', 'Trade List', 'Owned entries marked available for trade'),
+                    ('purchases', 'Purchase history', 'Entries with purchase price, date, or source'),
+                    ('values', 'Collection values', 'Entries with estimated or insurance values')
+                ] %}
+                <tr>
+                    <td>{{ label }}</td><td class="text-muted">{{ description }}</td>
+                    <td class="text-end"><a class="btn btn-outline-primary btn-sm" href="/backup/export/{{ key }}/json">Download JSON</a></td>
+                    <td class="text-end"><a class="btn btn-outline-secondary btn-sm" href="/backup/export/{{ key }}/csv">Download CSV</a></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">Import collection data</div>
+    <div class="card-body">
+        <form id="backup-import-form" enctype="multipart/form-data">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6"><label class="form-label" for="import-file">EvoDeck JSON or CSV export</label><input class="form-control" id="import-file" name="file" type="file" accept=".json,.csv,application/json,text/csv" required></div>
+                <div class="col-md-4"><label class="form-label" for="import-mode">Import mode</label><select class="form-select" id="import-mode" name="mode"><option value="merge">Merge duplicates (add quantities)</option><option value="replace">Replace current collection</option></select></div>
+                <div class="col-md-2 d-grid"><button class="btn btn-outline-primary" type="button" id="preview-import">Preview</button></div>
+            </div>
+            <div class="form-text">A database snapshot is created automatically before every import. Replace removes only your collection and wishlist data, never the card catalog.</div>
+            <div id="import-preview" class="alert alert-secondary mt-3 d-none" role="status"></div>
+            <button class="btn btn-primary mt-2 d-none" type="submit" id="apply-import">Import after preview</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Database backup history</div>
+    <div class="card-body p-0">
+        <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Created</th><th>Operation</th><th>Snapshot</th><th>Size</th><th>Notes</th><th></th></tr></thead>
+            <tbody>
+            {% for item in history %}
+            <tr><td>{{ item.created_at }}</td><td>{{ item.operation }}</td><td class="font-monospace small">{{ item.filename }}</td><td>{{ '{:,}'.format(item.file_size) }} bytes</td><td>{{ item.notes or '—' }}</td><td class="text-end"><button class="btn btn-outline-danger btn-sm restore-backup" data-backup-id="{{ item.id }}" data-backup-name="{{ item.filename }}">Restore</button></td></tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">No application backups have been created yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table></div>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='js/backup.js') }}"></script>
+{% endblock %}

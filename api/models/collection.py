@@ -138,6 +138,19 @@ def ensure_collection_schema():
         )
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_wishlist_items_unique ON wishlist_items (user_id, card_id, COALESCE(source_variant_id, ''))")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_priority ON wishlist_items (user_id, priority, card_id)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS backup_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                filename TEXT NOT NULL UNIQUE,
+                operation TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                file_size INTEGER NOT NULL DEFAULT 0,
+                notes TEXT
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_backup_history_created ON backup_history (created_at DESC)")
         variant_columns = {item["name"] for item in conn.execute("PRAGMA table_info(variants)")}
         if "source_variant_id" in variant_columns:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_variants_card_source ON variants (card_id, source_variant_id)")

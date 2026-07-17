@@ -207,3 +207,15 @@ CREATE TABLE wishlist_items (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (card_id) REFERENCES cards(id)
 );
+
+CREATE TABLE backup_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename TEXT NOT NULL UNIQUE,
+    operation TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    file_size INTEGER NOT NULL DEFAULT 0,
+    notes TEXT
+);
+
+CREATE INDEX idx_backup_history_created
+ON backup_history (created_at DESC);
