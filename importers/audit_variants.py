@@ -6,10 +6,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from config import DATA, DATABASE
-from import_variants import normalize, parse_variants, set_source_map
-
-
-FIELDS = ("variants", "rarity", "suffix", "category", "edition", "finish", "holo", "reverse", "firstEdition", "shadowless", "promo", "stamp", "legal")
+from import_variants import normalize, parse_variant_format, set_source_map
 
 
 def arguments():
@@ -44,12 +41,12 @@ def main():
                 continue
             text = path.read_text(encoding="utf-8")
             stats["files"] += 1
-            present = [field for field in FIELDS if re.search(rf"\b{re.escape(field)}\b", text)]
-            stats.update(present)
-            keys = parse_variants(text)
+            variant_format, keys = parse_variant_format(text)
+            stats[f"format_{variant_format}"] += 1
             if keys:
                 stats["cards_with_variants"] += 1
                 types.update(keys)
+                stats[f"rows_{variant_format}"] += len(keys)
                 sets[set_id or source_set] += 1
                 era = relative.parts[0]
                 if len(samples[era]) < args.limit:
@@ -63,13 +60,16 @@ def main():
                         actual = {row[0] for row in conn.execute("SELECT source_variant_id FROM variants WHERE card_id = ?", (card[0],))}
                         if not expected.issubset(actual):
                             missing.append((card[0], sorted(expected - actual)))
-            elif "variants" in present:
+            elif variant_format != "none":
                 suspicious.append(str(relative))
             if args.limit and stats["files"] >= args.limit and args.card:
                 break
         print("Total card files scanned:", stats["files"])
         print("Cards containing a variants object:", stats["cards_with_variants"])
-        print("Recognized source fields:", {field: stats[field] for field in FIELDS})
+        print("Legacy array format cards:", stats["format_legacy-array"])
+        print("Modern boolean-object format cards:", stats["format_boolean-object"])
+        print("Variant rows generated from legacy arrays:", stats["rows_legacy-array"])
+        print("Variant rows generated from boolean objects:", stats["rows_boolean-object"])
         print("Counts by variant type:", dict(types))
         print("Counts by set:", dict(sets))
         print("Cards with multiple variants:", stats["multiple_variants"])

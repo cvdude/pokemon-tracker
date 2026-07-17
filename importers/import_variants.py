@@ -48,10 +48,17 @@ def set_source_map(conn):
 
 
 def parse_variants(text):
-    match = re.search(r"variants\s*:\s*\{(.*?)\}", text, re.DOTALL)
-    if not match:
-        return []
-    return [key for key, value in re.findall(r"([A-Za-z][A-Za-z0-9_]*)\s*:\s*(true|false)", match.group(1)) if value == "true"]
+    return parse_variant_format(text)[1]
+
+
+def parse_variant_format(text):
+    legacy = re.search(r"variants\s*:\s*\[(.*?)\]", text, re.DOTALL)
+    if legacy:
+        return "legacy-array", re.findall(r"type\s*:\s*[\"']([^\"']+)", legacy.group(1))
+    modern = re.search(r"variants\s*:\s*\{(.*?)\}", text, re.DOTALL)
+    if modern:
+        return "boolean-object", [key for key, value in re.findall(r"([A-Za-z][A-Za-z0-9_]*)\s*:\s*(true|false)", modern.group(1)) if value == "true"]
+    return "none", []
 
 
 def main():

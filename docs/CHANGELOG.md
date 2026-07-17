@@ -39,3 +39,7 @@ Collection entries can now retain stable imported variant identifiers while pres
 ## Variant coverage audit
 
 Added a source-to-database audit for explicit TypeScript card variant data.
+
+## Finalize variant import pipeline
+
+Aligned variant import and audit reporting with the verified legacy-array and modern boolean-object TCGdex formats.
