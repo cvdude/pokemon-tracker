@@ -71,3 +71,7 @@ Added global catalog search, composable collection filters, URL-persisted state,
 ## Wishlist and trade list
 
 Added card and variant wishlists, owned-copy trade flags, search filters, dashboard widgets, and safe schema migration support.
+
+## Collection analytics
+
+Added aggregate collection analytics, interactive linked charts, set completion lists, duplicate ranking, and monthly growth reporting.

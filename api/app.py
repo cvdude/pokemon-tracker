@@ -6,6 +6,7 @@ from routes.collection import collection
 from routes.sets import sets
 from routes.cards import cards
 from routes.inventory import inventory
+from routes.analytics import analytics
 
 
 app = Flask(__name__)
@@ -17,6 +18,7 @@ app.register_blueprint(collection)
 app.register_blueprint(sets)
 app.register_blueprint(cards)
 app.register_blueprint(inventory)
+app.register_blueprint(analytics)
 
 
 if __name__ == "__main__":

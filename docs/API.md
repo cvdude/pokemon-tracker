@@ -7,6 +7,7 @@ All current routes are registered without a URL prefix. HTML routes render Jinja
 | Method | Route | Response |
 |---|---|---|
 | GET | `/` | Dashboard with series, set, and catalog-card counts. |
+| GET | `/analytics` | Aggregate collection analytics with linked Chart.js breakdowns, set-completion lists, duplicates, trade, wishlist, and monthly growth. |
 | GET | `/sets` | Set browser page. |
 | GET | `/sets/<set_id>` | Cards in a set, including collection progress and add controls. Returns 404 when the set is absent. |
 | GET | `/card/<card_id>` | Card-detail page with ability, attacks, weaknesses, resistances, retreat cost, and adjacent cards. Returns 404 when absent. |
