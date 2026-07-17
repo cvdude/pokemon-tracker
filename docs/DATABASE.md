@@ -29,7 +29,7 @@ The application uses SQLite at `database/pokemon.db`. Foreign keys describe the 
 | `locations` | Legacy named storage locations. |
 | `inventory` | Legacy per-user inventory records. It links `user_id` to `users`, `card_id` to `cards`, and `location_id` to `locations`; it remains for backward compatibility and is migrated into `collection_items` at startup. |
 | `collection` | Legacy variant-based collection table. `variant_id` references `variants.id`. It is retained in the baseline schema but is not the active ownership engine. |
-| `collection_items` | Active ownership table. `user_id` references `users.id`; `card_id` references `cards.id`. It stores `quantity`, `condition`, `variant`, `language`, `storage_location`, `acquisition_date`, `purchase_price`, `notes`, favorite state, and timestamps. Each row is an independent owned entry, so the same card can have multiple separate records. |
+| `collection_items` | Active ownership table. `user_id` references `users.id`; `card_id` references `cards.id`. It stores raw/graded ownership type, condition, variant and custom variant, language, grading company and custom company, grade, certification number, storage, acquisition, price, notes, and timestamps. Each row is an independent owned entry. |
 
 ## Catalog versus collection
 

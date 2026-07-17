@@ -80,7 +80,7 @@ Returns the current user’s summed collection quantity for a card.
 
 ### `POST /inventory/add/<card_id>` and `POST /collection/items/<card_id>`
 
-Equivalent add routes. Accept JSON or form fields: `quantity` (1–1000), `condition`, `variant`, `language`, `storage_location`, `acquisition_date` (`YYYY-MM-DD`), `purchase_price`, and `notes`. `condition` is limited to the supported collection conditions; `variant` and `language` also accept `Other` with `variant_other` or `language_other`. Each request creates an independent collection entry, including when its card and metadata match an existing entry.
+Equivalent add routes accept raw or graded ownership metadata. Graded items require `grading_company` and a decimal `grade`; raw items use the supported condition set. Each request creates an independent collection entry.
 
 ```json
 {"success": true, "count": 2}

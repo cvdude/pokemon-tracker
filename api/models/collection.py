@@ -25,7 +25,13 @@ def create_collection_items(conn):
             quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
             condition TEXT NOT NULL DEFAULT 'Near Mint',
             variant TEXT NOT NULL DEFAULT 'Normal',
+            custom_variant TEXT,
             language TEXT NOT NULL DEFAULT 'English',
+            ownership_type TEXT NOT NULL DEFAULT 'Raw',
+            grading_company TEXT,
+            custom_grading_company TEXT,
+            grade REAL,
+            certification_number TEXT,
             storage_location TEXT NOT NULL DEFAULT 'Unassigned',
             acquisition_date TEXT,
             purchase_price REAL,
@@ -73,6 +79,18 @@ def ensure_collection_schema():
             columns = {item["name"] for item in conn.execute("PRAGMA table_info(collection_items)")}
             if "language" not in columns or "UNIQUE" in (row["sql"] or "").upper():
                 rebuild_collection_items(conn, columns)
+            columns = {item["name"] for item in conn.execute("PRAGMA table_info(collection_items)")}
+            additions = {
+                "custom_variant": "TEXT",
+                "ownership_type": "TEXT NOT NULL DEFAULT 'Raw'",
+                "grading_company": "TEXT",
+                "custom_grading_company": "TEXT",
+                "grade": "REAL",
+                "certification_number": "TEXT",
+            }
+            for name, definition in additions.items():
+                if name not in columns:
+                    conn.execute(f"ALTER TABLE collection_items ADD COLUMN {name} {definition}")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_card_user ON collection_items (card_id, user_id)")
         conn.execute(
             """

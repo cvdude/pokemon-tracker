@@ -12,6 +12,7 @@ inventory = Blueprint("inventory", __name__)
 CONDITIONS = {"Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played", "Damaged"}
 VARIANTS = {"Normal", "Holo", "Reverse Holo", "1st Edition", "Shadowless", "Promo"}
 LANGUAGES = {"English", "Japanese"}
+GRADING_COMPANIES = {"PSA", "CGC", "Beckett/BGS", "SGC", "TAG", "ACE"}
 
 
 def get_connection():
@@ -49,6 +50,7 @@ def collection_fields(data):
         elif value not in allowed:
             return None, f"Select a valid {field}."
         fields[field] = value
+        if field == "variant": fields["custom_variant"] = other if value.startswith("Other: ") else None
     location = (data.get("storage_location") or DEFAULT_LOCATION).strip()[:100]
     if not location:
         return None, "Storage location is required."
@@ -63,6 +65,23 @@ def collection_fields(data):
         return None, "Purchase price must be a valid number."
     if price is not None and price < 0:
         return None, "Purchase price cannot be negative."
+    ownership_type = (data.get("ownership_type") or "Raw").strip()
+    if ownership_type not in {"Raw", "Graded"}: return None, "Select Raw or Graded ownership."
+    fields.update({"ownership_type": ownership_type, "grading_company": None, "custom_grading_company": None, "grade": None, "certification_number": None})
+    if ownership_type == "Graded":
+        company = (data.get("grading_company") or "").strip()
+        if company == "Other":
+            custom = (data.get("custom_grading_company") or "").strip()[:100]
+            if not custom: return None, "Specify the other grading company."
+            fields["grading_company"], fields["custom_grading_company"] = "Other", custom
+        elif company in GRADING_COMPANIES: fields["grading_company"] = company
+        else: return None, "Select a valid grading company."
+        try: grade = float(data.get("grade"))
+        except (TypeError, ValueError): return None, "Grade must be a valid number."
+        if not 0 <= grade <= 10: return None, "Grade must be between 0 and 10."
+        fields["grade"] = grade
+        fields["certification_number"] = (data.get("certification_number") or "").strip()[:100] or None
+        fields["condition"] = ""
     fields.update({"storage_location": location, "acquisition_date": acquired, "purchase_price": price, "notes": (data.get("notes") or "").strip()[:2000] or None})
     return fields, None
 
@@ -91,6 +110,17 @@ def collection_items_for_card(card_id):
     return jsonify({"items": [dict(row) for row in rows]})
 
 
+@inventory.route("/collection/variants/<card_id>")
+def collection_variants(card_id):
+    conn = get_connection()
+    try:
+        rows = conn.execute("SELECT DISTINCT variant_type, subtype, stamp FROM variants WHERE card_id = ?", (card_id,)).fetchall()
+    finally:
+        conn.close()
+    values = [" ".join(part for part in (row["variant_type"], row["subtype"], row["stamp"]) if part).strip() for row in rows]
+    return jsonify({"variants": [value for value in values if value]})
+
+
 @inventory.route("/inventory/add/<card_id>", methods=["POST"])
 @inventory.route("/collection/items/<card_id>", methods=["POST"])
 def add_card(card_id):
@@ -102,7 +132,7 @@ def add_card(card_id):
         cur = conn.cursor()
         if cur.execute("SELECT 1 FROM cards WHERE id = ?", (card_id,)).fetchone() is None:
             return jsonify({"success": False, "error": "Card not found."}), 404
-        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, language, storage_location, acquisition_date, purchase_price, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, card_id, *fields.values()))
+        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, card_id, *fields.values()))
         item_id = cur.lastrowid
         conn.commit()
         count = get_count(cur, card_id)
@@ -143,7 +173,7 @@ def collection_item(item_id):
             fields, error = collection_fields(request_data())
             if error:
                 return jsonify({"success": False, "error": error}), 400
-            cur.execute("UPDATE collection_items SET quantity = ?, condition = ?, variant = ?, language = ?, storage_location = ?, acquisition_date = ?, purchase_price = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (*fields.values(), item_id))
+            cur.execute("UPDATE collection_items SET quantity = ?, condition = ?, variant = ?, custom_variant = ?, language = ?, ownership_type = ?, grading_company = ?, custom_grading_company = ?, grade = ?, certification_number = ?, storage_location = ?, acquisition_date = ?, purchase_price = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (*fields.values(), item_id))
         conn.commit()
         count = get_count(cur, item["card_id"])
     finally:
@@ -159,7 +189,7 @@ def duplicate_collection_item(item_id):
         item = item_or_404(cur, item_id)
         if item is None:
             return jsonify({"success": False, "error": "Collection item not found."}), 404
-        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, language, storage_location, acquisition_date, purchase_price, notes, is_favorite) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, item["card_id"], item["quantity"], item["condition"], item["variant"], item["language"], item["storage_location"], item["acquisition_date"], item["purchase_price"], item["notes"], item["is_favorite"]))
+        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, notes, is_favorite) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, item["card_id"], item["quantity"], item["condition"], item["variant"], item["custom_variant"], item["language"], item["ownership_type"], item["grading_company"], item["custom_grading_company"], item["grade"], item["certification_number"], item["storage_location"], item["acquisition_date"], item["purchase_price"], item["notes"], item["is_favorite"]))
         duplicate_id = cur.lastrowid
         conn.commit()
         count = get_count(cur, item["card_id"])

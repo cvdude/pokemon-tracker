@@ -23,3 +23,7 @@ Replaced immediate add behavior with a validated add/edit modal for quantity, co
 ## Complete collection item management
 
 Added full per-card copy management: viewing all entries, independent entry creation, editing, duplication, confirmed deletion, keyboard dialog support, and accurate progress refreshes.
+
+## Raw and graded collection tracking
+
+Added raw and graded ownership fields, grading metadata, imported variant lookup, and a first-copy form flow.
