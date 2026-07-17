@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template
 import sqlite3
 from config import DATABASE
+from models.collection import DEFAULT_USER_ID
 
 sets = Blueprint("sets", __name__)
 
@@ -20,12 +21,14 @@ def sets_page():
         COUNT(DISTINCT c.id) AS printed_total,
         s.logo,
         s.symbol,
-        COUNT(DISTINCT i.id) AS owned_count
+        COUNT(DISTINCT CASE WHEN ci.quantity > 0 THEN c.id END) AS owned_count
     FROM sets s
     LEFT JOIN cards c
         ON s.id = c.set_id
-    LEFT JOIN inventory i
-        ON c.id = i.card_id
+    LEFT JOIN collection_items ci
+        ON c.id = ci.card_id
+        AND ci.user_id = ?
+        AND ci.quantity > 0
     GROUP BY
     s.id,
     s.name,
@@ -41,7 +44,7 @@ ORDER BY
     END,
     s.release_date ASC,
     s.name ASC;
-""")
+""", (DEFAULT_USER_ID,))
 
     sets = cur.fetchall()
 

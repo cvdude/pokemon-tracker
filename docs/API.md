@@ -12,7 +12,9 @@ All current routes are registered without a URL prefix. HTML routes render Jinja
 | GET | `/sets/<set_id>` | Cards in a set, including collection progress and add controls. Returns 404 when the set is absent. |
 | GET | `/card/<card_id>` | Card-detail page with ability, attacks, weaknesses, resistances, retreat cost, and adjacent cards. Returns 404 when absent. |
 | GET | `/collection` | Advanced collection and catalog search. Supports `q`, `ownership` (`owned`, `missing`, or `all`), `duplicates`, `grading`, `master`, `has_notes`, `sort`, and `order`; filter state is retained in the URL. |
+| GET | `/cards` | Catalog shortcut; redirects to the all-cards collection search. |
 | GET | `/backup` | Backup, export, import, and restore workspace. |
+| GET/POST | `/settings` | User preference workspace. |
 
 ## Card API
 
@@ -43,7 +45,7 @@ Returns one random card after applying supported filters.
 {"card": {"id": "...", "name": "...", "owned": 0}}
 ```
 
-Returns `404` with `{"error":"No cards found"}` if no card matches.
+Returns `404` with `{"success":false,"error":"No cards found"}` if no card matches.
 
 ### `GET /api/cards/recent`
 
@@ -68,7 +70,7 @@ Returns one card plus related detail arrays.
 }
 ```
 
-Returns `404` with `{"error":"Card not found"}` when absent.
+Returns `404` with `{"success":false,"error":"Card not found"}` when absent.
 
 ## Collection JSON routes
 
@@ -161,3 +163,11 @@ Multipart request with `file` and `mode` (`merge` or `replace`). Merge adds quan
 ### `POST /backup/restore/<backup_id>`
 
 Restores a database snapshot listed in backup history. EvoDeck first saves the current database, then saves an after-restore snapshot. Returns the two snapshot records.
+
+## Settings JSON route
+
+### `GET` / `PATCH /api/settings`
+
+Reads or partially updates the default user's validated settings. Supported keys include `default_collection_view`, `theme`, `card_image_size`, `default_sort`, `default_order`, `default_filters`, `currency`, `date_format`, `dashboard_widgets`, and `hidden_dashboard_widgets`. Invalid values return `400` with `{"success":false,"error":"..."}`.
+
+All JSON endpoints consistently return a JSON `error` and `success: false` for HTTP errors.

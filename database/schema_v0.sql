@@ -220,6 +220,9 @@ CREATE TABLE backup_history (
 CREATE INDEX idx_backup_history_created
 ON backup_history (created_at DESC);
 
+CREATE INDEX idx_wishlist_items_user_card
+ON wishlist_items (user_id, card_id);
+
 CREATE TABLE user_settings (
     user_id INTEGER NOT NULL,
     setting_key TEXT NOT NULL,

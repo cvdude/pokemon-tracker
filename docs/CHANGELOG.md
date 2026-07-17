@@ -91,3 +91,7 @@ Added extensible per-user preferences, a settings workspace, theme and image-siz
 ## Image viewer and variant comparison
 
 Added a responsive full-screen card viewer with high-resolution scans, zoom and pan, available scan selection, previous/next viewer navigation, lazy-loaded images, and side-by-side Master Set variant ownership comparison.
+
+## Release Candidate 1
+
+Removed confirmed zero-byte placeholders and unused assets, restored Catalog navigation, corrected set ownership to use active collection data, added a wishlist lookup index, standardized JSON HTTP errors, and improved collection/wishlist loading, error, keyboard, and dialog accessibility behavior.

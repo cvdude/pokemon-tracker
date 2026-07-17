@@ -4,13 +4,13 @@ EvoDeck is a server-rendered Pokémon Trading Card application built with Flask,
 
 ## Application layout
 
-- `api/app.py` — application startup and blueprint registration.
+- `api/app.py` — application startup, safe schema migrations, shared preference context, display filters, JSON error handling, and blueprint registration.
 - `api/config.py` — resolves the repository-local SQLite database at `database/pokemon.db`.
-- `api/models/` — database-focused code. `models/collection.py` creates and migrates the collection ownership table at application startup.
-- `api/routes/` — Flask blueprints for the dashboard, sets, cards, collection, and collection mutation endpoints. `admin.py` and `catalog.py` are placeholders.
-- `api/services/` — integrations and domain helpers for TCGdex metadata, pricing, and variants.
+- `api/models/` — database-focused code. `models/collection.py` creates and migrates ownership, wishlist, and backup tables; `models/settings.py` manages extensible JSON-backed preferences.
+- `api/routes/` — Flask blueprints for dashboard, catalog/card detail, sets, collection search, inventory/wishlist mutations, analytics, backups, and settings.
+- `api/services/` — domain helpers for Master Set progress and forward-compatible backup/import processing.
 - `api/templates/` — Jinja pages and reusable components. `layout.html` is the shared shell and `components/card_tile.html` renders a catalog card with collection controls.
-- `api/static/` — browser assets. `static/js/inventory.js` powers the add/remove and detailed-add controls; `static/css/` contains the site styles.
+- `api/static/` — browser assets. Collection, wishlist, analytics, backup, preferences, settings, and image-viewer modules are loaded only where needed; `static/css/style.css` contains shared responsive and theme styles.
 
 ## Request flow
 
@@ -18,7 +18,7 @@ EvoDeck is a server-rendered Pokémon Trading Card application built with Flask,
 2. Catalog routes read `cards`, `sets`, and card-detail tables.
 3. Collection mutations write to `collection_items`; catalog data is never updated to record ownership.
 4. The route returns either a Jinja-rendered page or a JSON response.
-5. The cards page JavaScript calls the collection mutation routes and refreshes its display when necessary.
+5. Browser modules call JSON mutation routes, surface loading/errors in their dialogs, and refresh state only after a successful change.
 
 ## Data import and synchronization
 

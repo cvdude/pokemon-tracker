@@ -137,6 +137,7 @@ def ensure_collection_schema():
             """
         )
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_wishlist_items_unique ON wishlist_items (user_id, card_id, COALESCE(source_variant_id, ''))")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_card ON wishlist_items (user_id, card_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_priority ON wishlist_items (user_id, priority, card_id)")
         conn.execute(
             """

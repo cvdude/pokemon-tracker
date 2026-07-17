@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from flask import Flask, g
+from flask import Flask, g, jsonify, request
+from werkzeug.exceptions import HTTPException
 
 from models.collection import ensure_collection_schema
 from models.settings import ensure_settings_schema, get_settings
@@ -60,6 +61,15 @@ app.register_blueprint(inventory)
 app.register_blueprint(analytics)
 app.register_blueprint(backup)
 app.register_blueprint(settings)
+
+
+@app.errorhandler(HTTPException)
+def api_http_error(error):
+    """Keep JSON endpoints predictable without changing HTML error pages."""
+    api_prefixes = ("/api/", "/collection/items", "/collection/variants", "/inventory/", "/wishlist/", "/backup/")
+    if request.path.startswith(api_prefixes):
+        return jsonify({"success": False, "error": error.description}), error.code
+    return error
 
 
 if __name__ == "__main__":

@@ -57,3 +57,5 @@ At application startup, `ensure_collection_schema()` safely creates or extends `
 ## Backup and import data
 
 Backups are complete SQLite snapshots stored in `backups/`; an automatic snapshot is made before every import and before every restore. The `backup_history` table tracks only snapshots made by EvoDeck. JSON exports use the versioned `evodeck-collection-export` envelope and include only collection and wishlist data, so importing cannot replace catalog tables. CSV exports flatten the same records for spreadsheet use. Imports reject future format versions, validate referenced catalog card IDs, and run all data changes in one transaction; a failed import is rolled back.
+
+`idx_wishlist_items_user_card` supports the dashboard, collection filters, and card-detail wishlist lookups. `collection_items` has user/card, update-time, storage, trade, purchase-date, and valuation indexes for the primary dashboard, search, progress, and analytics queries.

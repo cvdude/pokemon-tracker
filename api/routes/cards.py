@@ -1,6 +1,6 @@
 import sqlite3
 
-from flask import Blueprint, abort, jsonify, render_template, request
+from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 
 from config import DATABASE
 from models.collection import DEFAULT_USER_ID
@@ -155,6 +155,12 @@ def api_cards():
     return paginated_response(cards_list, total, page, per_page, sort, order)
 
 
+@cards.route("/cards")
+def cards_catalog():
+    """Keep the Catalog navigation target working through the global catalog view."""
+    return redirect(url_for("collection.collection_page", ownership="all"))
+
+
 @cards.route("/api/cards/search")
 def search_cards():
     page, per_page = get_pagination()
@@ -180,7 +186,7 @@ def random_card():
     finally:
         conn.close()
     if row is None:
-        return jsonify({"error": "No cards found"}), 404
+        return jsonify({"success": False, "error": "No cards found"}), 404
     return jsonify({"card": row_to_dict(row)})
 
 
@@ -205,7 +211,7 @@ def api_card_detail(card_id):
             (DEFAULT_USER_ID, card_id),
         ).fetchone()
         if row is None:
-            return jsonify({"error": "Card not found"}), 404
+            return jsonify({"success": False, "error": "Card not found"}), 404
         card = row_to_dict(row)
         details = {
             "abilities": "SELECT ability_type, name, text FROM abilities WHERE card_id = ? ORDER BY id",
