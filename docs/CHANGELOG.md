@@ -27,3 +27,7 @@ Added full per-card copy management: viewing all entries, independent entry crea
 ## Raw and graded collection tracking
 
 Added raw and graded ownership fields, grading metadata, imported variant lookup, and a first-copy form flow.
+
+## Card variant importer
+
+Added an idempotent NAS importer for the TypeScript source card `variants` object and normalized variant metadata.

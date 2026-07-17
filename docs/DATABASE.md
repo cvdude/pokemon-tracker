@@ -10,7 +10,7 @@ The application uses SQLite at `database/pokemon.db`. Foreign keys describe the 
 | `series` | Pokémon card series. One `series` has many `sets`. |
 | `sets` | Set metadata, including release date and image references. `series_id` references `series.id`; one set has many `cards`. |
 | `cards` | The immutable card catalog. `set_id` references `sets.id`; one card has many related detail records and collection items. |
-| `variants` | Variant definitions for a card. `card_id` references `cards.id`. |
+| `variants` | Normalized imported variant definitions. `card_id` references `cards.id`; `source_variant_id` is the stable source key, while `name`, `variant_type`, `finish`, and `edition` provide display and printing metadata. |
 | `card_images` | Optional image references for one card. `card_id` is both the primary key and a reference to `cards.id`. |
 | `card_types` | Repeating card type values. `card_id` references `cards.id`. |
 | `card_subtypes` | Repeating subtype values. `card_id` references `cards.id`. |
