@@ -55,3 +55,7 @@ Expanded the existing card detail route into a complete card workspace with card
 ## Collector dashboard
 
 Replaced the catalog-only landing page with collector summaries, collection completion, recent additions, and started-set progress.
+
+## Dedicated card detail enhancements
+
+Added per-card Master Set variant checklists, owned-copy details, direct edit/move/delete actions, and batched attack-cost loading.

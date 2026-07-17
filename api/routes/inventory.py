@@ -121,7 +121,10 @@ def collection_items_for_card(card_id):
 def collection_variants(card_id):
     conn = get_connection()
     try:
-        rows = conn.execute("SELECT source_variant_id, name, variant_type, finish, edition FROM variants WHERE card_id = ? ORDER BY CASE name WHEN 'Normal' THEN 1 WHEN 'Holo' THEN 2 WHEN 'Reverse Holo' THEN 3 WHEN '1st Edition' THEN 4 WHEN 'Unlimited' THEN 5 ELSE 99 END, name", (card_id,)).fetchall()
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(variants)").fetchall()}
+        if not {"source_variant_id", "name"}.issubset(columns):
+            return jsonify({"variants": []})
+        rows = conn.execute("SELECT source_variant_id, name, variant_type FROM variants WHERE card_id = ? ORDER BY CASE name WHEN 'Normal' THEN 1 WHEN 'Holo' THEN 2 WHEN 'Reverse Holo' THEN 3 WHEN '1st Edition' THEN 4 WHEN 'Unlimited' THEN 5 ELSE 99 END, name", (card_id,)).fetchall()
     finally:
         conn.close()
     return jsonify({"variants": [{"id": row["source_variant_id"], "name": row["name"] or row["variant_type"]} for row in rows if row["source_variant_id"]]})

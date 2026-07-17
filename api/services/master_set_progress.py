@@ -109,6 +109,64 @@ def get_set_master_progress(connection, set_id, user_id):
     )
 
 
+def get_card_master_variants(connection, card_id, user_id):
+    """Return the Master Set requirements and ownership state for one card."""
+    if not _has_source_variant_ids(connection):
+        return [_fallback_card_variant(connection, card_id, user_id)]
+
+    variants = connection.execute(
+        """
+        SELECT source_variant_id, COALESCE(name, variant_type, 'Imported Variant') AS name
+        FROM variants
+        WHERE card_id = ?
+          AND source_variant_id IS NOT NULL AND source_variant_id <> ''
+        ORDER BY CASE name WHEN 'Normal' THEN 1 WHEN 'Holo' THEN 2
+                           WHEN 'Reverse Holo' THEN 3 WHEN '1st Edition' THEN 4
+                           WHEN 'Unlimited' THEN 5 ELSE 99 END, name
+        """,
+        (card_id,),
+    ).fetchall()
+    if not variants:
+        return [_fallback_card_variant(connection, card_id, user_id)]
+
+    owned_rows = connection.execute(
+        """
+        SELECT source_variant_id, variant, custom_variant
+        FROM collection_items
+        WHERE card_id = ? AND user_id = ? AND quantity > 0
+        """,
+        (card_id, user_id),
+    ).fetchall()
+    owned_ids = {row["source_variant_id"] for row in owned_rows if row["source_variant_id"]}
+    legacy_names = {
+        (row["custom_variant"] or row["variant"] or "").strip().lower()
+        for row in owned_rows
+        if not row["source_variant_id"]
+    }
+    return [
+        {
+            "id": row["source_variant_id"],
+            "name": row["name"],
+            "owned": row["source_variant_id"] in owned_ids or row["name"].strip().lower() in legacy_names,
+            "fallback": False,
+        }
+        for row in variants
+    ]
+
+
+def _fallback_card_variant(connection, card_id, user_id):
+    owned = connection.execute(
+        """
+        SELECT EXISTS(
+            SELECT 1 FROM collection_items
+            WHERE card_id = ? AND user_id = ? AND quantity > 0
+        )
+        """,
+        (card_id, user_id),
+    ).fetchone()[0]
+    return {"id": None, "name": "Card", "owned": bool(owned), "fallback": True}
+
+
 def _progress(total, owned, imported_total, fallback_total):
     return {
         "total": total,
