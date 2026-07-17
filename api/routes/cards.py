@@ -4,6 +4,7 @@ from flask import Blueprint, abort, jsonify, render_template, request
 
 from config import DATABASE
 from models.collection import DEFAULT_USER_ID
+from services.master_set_progress import get_set_master_progress
 
 
 cards = Blueprint("cards", __name__)
@@ -232,6 +233,7 @@ def cards_by_set(set_id):
             """,
             (DEFAULT_USER_ID, set_id),
         ).fetchall()
+        master_progress = get_set_master_progress(conn, set_id, DEFAULT_USER_ID)
     finally:
         conn.close()
     total_cards = len(cards_list)
@@ -240,6 +242,7 @@ def cards_by_set(set_id):
         "cards.html", title=set_info["name"], set_name=set_info["name"], cards=cards_list,
         total_cards=total_cards, owned_cards=owned_cards, missing_cards=total_cards - owned_cards,
         percent_complete=round((owned_cards / total_cards) * 100) if total_cards else 0,
+        master_progress=master_progress,
     )
 
 
@@ -253,8 +256,21 @@ def card_detail(card_id):
         ).fetchone()
         if card is None:
             abort(404, description="Card not found")
-        ability = conn.execute("SELECT ability_type, name, text FROM abilities WHERE card_id = ? ORDER BY id LIMIT 1", (card_id,)).fetchone()
-        attacks = conn.execute("SELECT attack_order, name, damage, text FROM attacks WHERE card_id = ? ORDER BY attack_order, id", (card_id,)).fetchall()
+        abilities = conn.execute("SELECT ability_type, name, text FROM abilities WHERE card_id = ? ORDER BY id", (card_id,)).fetchall()
+        attack_rows = conn.execute("SELECT id, attack_order, name, damage, text FROM attacks WHERE card_id = ? ORDER BY attack_order, id", (card_id,)).fetchall()
+        attacks = []
+        for attack_row in attack_rows:
+            attack = row_to_dict(attack_row)
+            attack["cost"] = [
+                row["energy"]
+                for row in conn.execute(
+                    "SELECT energy FROM attack_cost WHERE attack_id = ? ORDER BY position, id",
+                    (attack["id"],),
+                ).fetchall()
+            ]
+            attacks.append(attack)
+        card_types = [row["type"] for row in conn.execute("SELECT type FROM card_types WHERE card_id = ? ORDER BY id", (card_id,)).fetchall()]
+        subtypes = [row["subtype"] for row in conn.execute("SELECT subtype FROM card_subtypes WHERE card_id = ? ORDER BY id", (card_id,)).fetchall()]
         weaknesses = conn.execute("SELECT type, value FROM weaknesses WHERE card_id = ? ORDER BY id", (card_id,)).fetchall()
         resistances = conn.execute("SELECT type, value FROM resistances WHERE card_id = ? ORDER BY id", (card_id,)).fetchall()
         retreat = conn.execute("SELECT energy, position FROM retreat_cost WHERE card_id = ? ORDER BY position, id", (card_id,)).fetchall()
@@ -266,7 +282,8 @@ def card_detail(card_id):
         conn.close()
     position = [row["id"] for row in siblings].index(card_id)
     return render_template(
-        "card_detail.html", title=card["name"], card=card, ability=ability, attacks=attacks,
+        "card_detail.html", title=card["name"], card=card, abilities=abilities, attacks=attacks,
+        card_types=card_types, subtypes=subtypes,
         weaknesses=weaknesses, resistances=resistances, retreat=retreat,
         previous_card=siblings[position - 1] if position else None,
         next_card=siblings[position + 1] if position + 1 < len(siblings) else None,

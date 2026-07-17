@@ -1,278 +1,45 @@
 {% extends "layout.html" %}
 
 {% block content %}
-
 <div class="container mt-4">
+    <nav class="d-flex justify-content-between align-items-center gap-2 mb-4" aria-label="Card navigation">
+        <div>{% if previous_card %}<a href="/card/{{ previous_card.id }}" class="btn btn-outline-primary">← Previous</a>{% endif %}</div>
+        <a href="/sets/{{ card.set_id }}" class="btn btn-outline-secondary">← Back to {{ card.set_name }}</a>
+        <div>{% if next_card %}<a href="/card/{{ next_card.id }}" class="btn btn-outline-primary">Next →</a>{% endif %}</div>
+    </nav>
 
-    <div class="d-flex justify-content-between mb-4">
+    <div class="row g-4">
+        <aside class="col-lg-4 text-center">
+            {% if card.image_large or card.image_small %}<img src="{{ (card.image_large or card.image_small) }}/high.webp" class="img-fluid rounded shadow" style="max-height:700px;" alt="{{ card.name }}">{% else %}<div class="border rounded bg-white text-muted p-5">No card image available</div>{% endif %}
+        </aside>
+        <main class="col-lg-8">
+            <div class="card shadow-sm mb-4"><div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div><h1 class="mb-1">{{ card.name }}</h1><p class="text-muted mb-0">{{ card.set_name }} · #{{ card.number }}{% if card.printed_total %} / {{ card.printed_total }}{% endif %}</p></div>
+                    {% if card.symbol %}<img src="{{ card.symbol }}.webp" style="height:42px;" alt="{{ card.set_name }} symbol">{% endif %}
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    {% if card.rarity %}<span class="badge text-bg-secondary">{{ card.rarity }}</span>{% endif %}
+                    {% for type in card_types %}<span class="badge text-bg-primary">{{ type }}</span>{% endfor %}
+                    {% for subtype in subtypes %}<span class="badge text-bg-light border text-dark">{{ subtype }}</span>{% endfor %}
+                </div>
+                <hr>
+                <div class="row row-cols-2 row-cols-md-4 g-3 small">
+                    <div><span class="text-muted d-block">Category</span>{{ card.category or '—' }}</div><div><span class="text-muted d-block">HP</span>{{ card.hp or '—' }}</div><div><span class="text-muted d-block">Stage</span>{{ card.stage or '—' }}</div><div><span class="text-muted d-block">Regulation</span>{{ card.regulation_mark or '—' }}</div>
+                    <div><span class="text-muted d-block">Evolves from</span>{{ card.evolves_from or '—' }}</div><div><span class="text-muted d-block">Artist</span>{{ card.artist or card.illustrator or '—' }}</div>
+                </div>
+            </div></div>
 
-        <div>
-            {% if previous_card %}
-            <a href="/card/{{ previous_card.id }}" class="btn btn-outline-primary">
-                ← {{ previous_card.name }}
-            </a>
-            {% endif %}
-        </div>
+            <div class="card border-success shadow-sm mb-4"><div class="card-body d-flex justify-content-between align-items-center gap-3">
+                <div>{% if card.owned %}<strong class="text-success">✓ {{ card.owned }} cop{{ 'y' if card.owned == 1 else 'ies' }} in your collection</strong><p class="text-muted small mb-0">Manage individual copies, variants, and condition.</p>{% else %}<strong>Not in your collection</strong><p class="text-muted small mb-0">Add your first copy with its ownership details.</p>{% endif %}</div>
+                <button class="btn {% if card.owned %}btn-outline-success{% else %}btn-success{% endif %} text-nowrap" data-collection-action="open" data-card-id="{{ card.id }}" data-card-name="{{ card.name }}">{% if card.owned %}Manage Collection{% else %}Add to Collection{% endif %}</button>
+            </div></div>
 
-        <div>
-            <a href="/sets/{{ card.set_id }}" class="btn btn-secondary">
-                ← Back to {{ card.set_name }}
-            </a>
-        </div>
-
-        <div>
-            {% if next_card %}
-            <a href="/card/{{ next_card.id }}" class="btn btn-outline-primary">
-                {{ next_card.name }} →
-            </a>
-            {% endif %}
-        </div>
-
+            {% if abilities %}<section class="card mb-4"><div class="card-header bg-primary text-white">Abilities</div><div class="card-body">{% for ability in abilities %}<article{% if not loop.first %} class="border-top pt-3 mt-3"{% endif %}><h2 class="h5 mb-1">{{ ability.name }}</h2>{% if ability.ability_type %}<p class="small text-muted mb-2">{{ ability.ability_type }}</p>{% endif %}<p class="mb-0">{{ ability.text }}</p></article>{% endfor %}</div></section>{% endif %}
+            {% if attacks %}<section class="card mb-4"><div class="card-header bg-danger text-white">Attacks</div><div class="card-body">{% for attack in attacks %}<article{% if not loop.first %} class="border-top pt-3 mt-3"{% endif %}><div class="d-flex justify-content-between gap-3"><div><h2 class="h5 mb-1">{% if attack.cost %}<span class="text-muted small me-2">{{ attack.cost|join(' · ') }}</span>{% endif %}{{ attack.name }}</h2>{% if attack.text %}<p class="mb-0">{{ attack.text }}</p>{% endif %}</div>{% if attack.damage %}<strong class="fs-5">{{ attack.damage }}</strong>{% endif %}</div></article>{% endfor %}</div></section>{% endif %}
+            <div class="row g-3"><div class="col-md-4"><section class="card h-100"><div class="card-header">Weaknesses</div><div class="card-body">{% for value in weaknesses %}<div>{{ value.type }} {{ value.value }}</div>{% else %}None{% endfor %}</div></section></div><div class="col-md-4"><section class="card h-100"><div class="card-header">Resistances</div><div class="card-body">{% for value in resistances %}<div>{{ value.type }} {{ value.value }}</div>{% else %}None{% endfor %}</div></section></div><div class="col-md-4"><section class="card h-100"><div class="card-header">Retreat cost</div><div class="card-body">{% if retreat %}{{ retreat|map(attribute='energy')|join(' · ') }}{% else %}None{% endif %}</div></section></div></div>
+        </main>
     </div>
-
-    <div class="row">
-
-        <!-- Card Image -->
-        <div class="col-lg-4 text-center">
-
-            {% if card.image_small %}
-            <img src="{{ card.image_small }}/high.webp"
-                 class="img-fluid rounded shadow"
-                 style="max-height:700px;">
-            {% endif %}
-
-        </div>
-
-        <!-- Card Details -->
-        <div class="col-lg-8">
-
-            <div class="d-flex justify-content-between align-items-start mb-3">
-
-                <div>
-
-                    <div class="d-flex align-items-center">
-
-                        <h1 class="mb-0 me-3">
-                            {{ card.name }}
-                        </h1>
-
-                        {% if card.logo %}
-                        <img src="{{ card.logo }}.webp"
-                             style="height:55px;">
-                        {% endif %}
-
-                    </div>
-
-                    <h4 class="text-muted mt-2">
-                        {{ card.set_name }}
-                    </h4>
-
-                </div>
-
-                <div>
-
-                    {% if card.symbol %}
-                    <img src="{{ card.symbol }}.webp"
-                         style="height:42px;">
-                    {% endif %}
-
-                </div>
-
-            </div>
-
-            <hr>
-
-            <table class="table table-striped">
-
-                <tr>
-                    <th width="220">Card Number</th>
-                    <td>
-                        {{ card.number }} / {{ card.printed_total }}
-                    </td>
-                </tr>
-
-                <tr>
-                    <th>Category</th>
-                    <td>{{ card.category or "-" }}</td>
-                </tr>
-
-                <tr>
-                    <th>HP</th>
-                    <td>{{ card.hp or "-" }}</td>
-                </tr>
-
-                <tr>
-                    <th>Stage</th>
-                    <td>{{ card.stage or "-" }}</td>
-                </tr>
-
-                <tr>
-                    <th>Evolves From</th>
-                    <td>{{ card.evolves_from or "-" }}</td>
-                </tr>
-
-                <tr>
-                    <th>Rarity</th>
-                    <td>{{ card.rarity or "-" }}</td>
-                </tr>
-
-                <tr>
-                    <th>Artist</th>
-                    <td>{{ card.artist or "-" }}</td>
-                </tr>
-
-                <tr>
-                    <th>Regulation Mark</th>
-                    <td>{{ card.regulation_mark or "-" }}</td>
-                </tr>
-
-            </table>
-
-            {% if ability %}
-            <div class="card mb-3">
-                <div class="card-header bg-primary text-white">
-                    Ability
-                </div>
-                <div class="card-body">
-                    <h5>{{ ability.name }}</h5>
-
-                    {% if ability.ability_type %}
-                    <small class="text-muted">
-                        {{ ability.ability_type }}
-                    </small>
-                    {% endif %}
-
-                    <p class="mt-2 mb-0">
-                        {{ ability.text }}
-                    </p>
-                </div>
-            </div>
-            {% endif %}
-
-            {% if attacks %}
-            <div class="card mb-3">
-                <div class="card-header bg-danger text-white">
-                    Attacks
-                </div>
-                <div class="card-body">
-
-                    {% for attack in attacks %}
-
-                    <h5>
-                        {{ attack.name }}
-
-                        {% if attack.damage %}
-                        <span class="float-end">
-                            {{ attack.damage }}
-                        </span>
-                        {% endif %}
-
-                    </h5>
-
-                    {% if attack.text %}
-                    <p>{{ attack.text }}</p>
-                    {% endif %}
-
-                    {% if not loop.last %}
-                    <hr>
-                    {% endif %}
-
-                    {% endfor %}
-
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="row">
-
-                <div class="col-md-4">
-
-                    <div class="card mb-3">
-
-                        <div class="card-header">
-                            Weaknesses
-                        </div>
-
-                        <div class="card-body">
-
-                            {% for w in weaknesses %}
-                            {{ w.type }} {{ w.value }}<br>
-                            {% else %}
-                            None
-                            {% endfor %}
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div class="col-md-4">
-
-                    <div class="card mb-3">
-
-                        <div class="card-header">
-                            Resistances
-                        </div>
-
-                        <div class="card-body">
-
-                            {% for r in resistances %}
-                            {{ r.type }} {{ r.value }}<br>
-                            {% else %}
-                            None
-                            {% endfor %}
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div class="col-md-4">
-
-                    <div class="card mb-3">
-
-                        <div class="card-header">
-                            Retreat Cost
-                        </div>
-
-                        <div class="card-body">
-
-                            {% if retreat %}
-                            {{ retreat|length }}
-                            {% else %}
-                            None
-                            {% endif %}
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="card">
-
-                <div class="card-header bg-success text-white">
-                    My Collection
-                </div>
-
-                <div class="card-body">
-
-                    <p class="text-muted mb-0">
-                        Inventory management coming soon.
-                    </p>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
 </div>
-
+{% include "components/collection_modal.html" %}
 {% endblock %}

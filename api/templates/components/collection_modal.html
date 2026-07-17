@@ -1,0 +1,25 @@
+<div id="collection-modal" class="modal" tabindex="-1" style="display:none; background:rgba(0, 0, 0, .5);">
+    <div class="modal-dialog modal-lg"><form id="collection-form" class="modal-content">
+        <div class="modal-header"><h5 id="collection-modal-title" class="modal-title">Add to Collection</h5><button type="button" class="btn-close" aria-label="Close" data-collection-action="close"></button></div>
+        <div class="modal-body">
+            <p id="collection-card-name" class="text-muted"></p>
+            <div id="collection-management" class="d-none"></div>
+            <div id="collection-fields" class="row g-3">
+                <div class="col-md-3"><label class="form-label" for="collection-quantity">Quantity</label><input id="collection-quantity" class="form-control" name="quantity" type="number" min="1" max="1000" value="1" required></div>
+                <div class="col-md-3"><label class="form-label" for="collection-condition">Condition</label><select id="collection-condition" class="form-select" name="condition" required><option>Mint</option><option selected>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></div>
+                <div class="col-md-3"><label class="form-label" for="collection-variant">Variant</label><select id="collection-variant" class="form-select" name="variant" required><option selected>Normal</option><option>Holo</option><option>Reverse Holo</option><option>1st Edition</option><option>Shadowless</option><option>Promo</option><option>Other</option></select></div>
+                <div id="collection-variant-other-wrap" class="col-md-3 d-none"><label class="form-label" for="collection-variant-other">Other variant</label><input id="collection-variant-other" class="form-control" name="variant_other" maxlength="100"></div>
+                <div class="col-md-3"><label class="form-label">Ownership</label><select class="form-select" name="ownership_type"><option selected>Raw</option><option>Graded</option></select></div>
+                <div id="collection-grading-wrap" class="row g-2 d-none"><div class="col-md-4"><label class="form-label">Grading company</label><select class="form-select" name="grading_company"><option>PSA</option><option>CGC</option><option>Beckett/BGS</option><option>SGC</option><option>TAG</option><option>ACE</option><option>Other</option></select></div><div class="col-md-3"><label class="form-label">Grade</label><input class="form-control" type="number" step="0.5" min="0" max="10" name="grade"></div><div class="col-md-5"><label class="form-label">Certification #</label><input class="form-control" name="certification_number"></div></div>
+                <div class="col-md-3"><label class="form-label" for="collection-language">Language</label><select id="collection-language" class="form-select" name="language" required><option selected>English</option><option>Japanese</option><option>Other</option></select></div>
+                <div id="collection-language-other-wrap" class="col-md-3 d-none"><label class="form-label" for="collection-language-other">Other language</label><input id="collection-language-other" class="form-control" name="language_other" maxlength="100"></div>
+                <div class="col-md-6"><label class="form-label" for="collection-location">Storage location</label><input id="collection-location" class="form-control" name="storage_location" value="Unassigned" maxlength="100" required></div>
+                <div class="col-md-6"><label class="form-label" for="collection-date">Date acquired</label><input id="collection-date" class="form-control" name="acquisition_date" type="date" required></div>
+                <div class="col-md-6"><label class="form-label" for="collection-price">Purchase price</label><input id="collection-price" class="form-control" name="purchase_price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                <div class="col-12"><label class="form-label" for="collection-notes">Notes</label><textarea id="collection-notes" class="form-control" name="notes" rows="3" maxlength="2000"></textarea></div>
+            </div>
+            <p id="collection-form-error" class="text-danger small mt-3 mb-0" role="alert"></p>
+        </div>
+        <div class="modal-footer"><button id="collection-back" type="button" class="btn btn-outline-secondary d-none" data-collection-action="back">Back to copies</button><button type="button" class="btn btn-outline-secondary" data-collection-action="close">Cancel</button><button id="collection-submit" type="submit" class="btn btn-success">Save to Collection</button></div>
+    </form></div>
+</div>

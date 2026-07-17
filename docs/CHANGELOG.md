@@ -43,3 +43,11 @@ Added a source-to-database audit for explicit TypeScript card variant data.
 ## Finalize variant import pipeline
 
 Aligned variant import and audit reporting with the verified legacy-array and modern boolean-object TCGdex formats.
+
+## Master Set progress engine
+
+Added read-only per-set Master Set progress based on imported card-specific variants, with a safe one-card fallback where no variant records exist. Standard collection progress remains unchanged.
+
+## Dedicated card detail pages
+
+Expanded the existing card detail route into a complete card workspace with card facts, types, abilities, attack costs, ownership status, and the shared collection-management dialog.

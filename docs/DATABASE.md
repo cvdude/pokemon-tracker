@@ -39,6 +39,10 @@ Catalog tables describe what a Pokémon card *is*: its set, number, name, printe
 
 Collection tables describe what a user *owns*. `collection_items` records each owned grouping and its personal metadata. Catalog progress is derived from these records: a card is owned when the user has a positive summed quantity for that card.
 
+## Master Set progress
+
+Master Set progress is calculated at read time; it adds no ownership or catalog records. Each imported `variants.source_variant_id` row is a required printing for its card. A card without imported variant rows counts as one fallback requirement until source data is available. An imported requirement is owned when a positive-quantity `collection_items` row has the matching `source_variant_id`; legacy entries without that identifier are matched by their saved human-readable variant name. This is separate from standard collection progress, which counts one owned catalog card regardless of its printing.
+
 ## Runtime migration
 
 At application startup, `ensure_collection_schema()` creates `collection_items` and the `idx_collection_items_card_user` index if needed. It then copies legacy `inventory` rows into the new table without duplicating equivalent rows. Database and backup files are intentionally retained in the repository.
