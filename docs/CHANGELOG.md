@@ -35,3 +35,7 @@ Added an idempotent NAS importer for the TypeScript source card `variants` objec
 ## Card-specific collection variants
 
 Collection entries can now retain stable imported variant identifiers while preserving readable names and fallback custom values.
+
+## Variant coverage audit
+
+Added a source-to-database audit for explicit TypeScript card variant data.
