@@ -25,6 +25,7 @@ def create_collection_items(conn):
             quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
             condition TEXT NOT NULL DEFAULT 'Near Mint',
             variant TEXT NOT NULL DEFAULT 'Normal',
+            source_variant_id TEXT,
             custom_variant TEXT,
             language TEXT NOT NULL DEFAULT 'English',
             ownership_type TEXT NOT NULL DEFAULT 'Raw',
@@ -82,6 +83,7 @@ def ensure_collection_schema():
             columns = {item["name"] for item in conn.execute("PRAGMA table_info(collection_items)")}
             additions = {
                 "custom_variant": "TEXT",
+                "source_variant_id": "TEXT",
                 "ownership_type": "TEXT NOT NULL DEFAULT 'Raw'",
                 "grading_company": "TEXT",
                 "custom_grading_company": "TEXT",

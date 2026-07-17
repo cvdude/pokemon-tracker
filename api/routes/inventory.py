@@ -40,7 +40,14 @@ def collection_fields(data):
     if condition not in CONDITIONS:
         return None, "Select a valid condition."
     fields = {"quantity": quantity, "condition": condition}
+    source_variant_id = (data.get("source_variant_id") or "").strip() or None
+    variant_name = (data.get("variant_name") or "").strip()[:100]
     for field, allowed, default in (("variant", VARIANTS, "Normal"), ("language", LANGUAGES, DEFAULT_LANGUAGE)):
+        if field == "variant" and source_variant_id:
+            fields[field] = variant_name or "Imported Variant"
+            fields["custom_variant"] = None
+            fields["source_variant_id"] = source_variant_id
+            continue
         value = (data.get(field) or default).strip()
         if value == "Other":
             other = (data.get(f"{field}_other") or "").strip()[:100]
@@ -50,7 +57,7 @@ def collection_fields(data):
         elif value not in allowed:
             return None, f"Select a valid {field}."
         fields[field] = value
-        if field == "variant": fields["custom_variant"] = other if value.startswith("Other: ") else None
+        if field == "variant": fields["custom_variant"] = other if value.startswith("Other: ") else None; fields["source_variant_id"] = None
     location = (data.get("storage_location") or DEFAULT_LOCATION).strip()[:100]
     if not location:
         return None, "Storage location is required."
@@ -114,11 +121,10 @@ def collection_items_for_card(card_id):
 def collection_variants(card_id):
     conn = get_connection()
     try:
-        rows = conn.execute("SELECT DISTINCT variant_type, subtype, stamp FROM variants WHERE card_id = ?", (card_id,)).fetchall()
+        rows = conn.execute("SELECT source_variant_id, name, variant_type, finish, edition FROM variants WHERE card_id = ? ORDER BY CASE name WHEN 'Normal' THEN 1 WHEN 'Holo' THEN 2 WHEN 'Reverse Holo' THEN 3 WHEN '1st Edition' THEN 4 WHEN 'Unlimited' THEN 5 ELSE 99 END, name", (card_id,)).fetchall()
     finally:
         conn.close()
-    values = [" ".join(part for part in (row["variant_type"], row["subtype"], row["stamp"]) if part).strip() for row in rows]
-    return jsonify({"variants": [value for value in values if value]})
+    return jsonify({"variants": [{"id": row["source_variant_id"], "name": row["name"] or row["variant_type"]} for row in rows if row["source_variant_id"]]})
 
 
 @inventory.route("/inventory/add/<card_id>", methods=["POST"])
@@ -132,7 +138,9 @@ def add_card(card_id):
         cur = conn.cursor()
         if cur.execute("SELECT 1 FROM cards WHERE id = ?", (card_id,)).fetchone() is None:
             return jsonify({"success": False, "error": "Card not found."}), 404
-        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, card_id, *fields.values()))
+        if fields.get("source_variant_id") and cur.execute("SELECT 1 FROM variants WHERE card_id = ? AND source_variant_id = ?", (card_id, fields["source_variant_id"])).fetchone() is None:
+            return jsonify({"success": False, "error": "Selected variant does not belong to this card."}), 400
+        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, source_variant_id, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, card_id, *fields.values()))
         item_id = cur.lastrowid
         conn.commit()
         count = get_count(cur, card_id)
@@ -173,7 +181,7 @@ def collection_item(item_id):
             fields, error = collection_fields(request_data())
             if error:
                 return jsonify({"success": False, "error": error}), 400
-            cur.execute("UPDATE collection_items SET quantity = ?, condition = ?, variant = ?, custom_variant = ?, language = ?, ownership_type = ?, grading_company = ?, custom_grading_company = ?, grade = ?, certification_number = ?, storage_location = ?, acquisition_date = ?, purchase_price = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (*fields.values(), item_id))
+            cur.execute("UPDATE collection_items SET quantity = ?, condition = ?, variant = ?, custom_variant = ?, source_variant_id = ?, language = ?, ownership_type = ?, grading_company = ?, custom_grading_company = ?, grade = ?, certification_number = ?, storage_location = ?, acquisition_date = ?, purchase_price = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (*fields.values(), item_id))
         conn.commit()
         count = get_count(cur, item["card_id"])
     finally:
@@ -189,7 +197,7 @@ def duplicate_collection_item(item_id):
         item = item_or_404(cur, item_id)
         if item is None:
             return jsonify({"success": False, "error": "Collection item not found."}), 404
-        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, notes, is_favorite) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, item["card_id"], item["quantity"], item["condition"], item["variant"], item["custom_variant"], item["language"], item["ownership_type"], item["grading_company"], item["custom_grading_company"], item["grade"], item["certification_number"], item["storage_location"], item["acquisition_date"], item["purchase_price"], item["notes"], item["is_favorite"]))
+        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, source_variant_id, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, notes, is_favorite) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, item["card_id"], item["quantity"], item["condition"], item["variant"], item["custom_variant"], item["source_variant_id"], item["language"], item["ownership_type"], item["grading_company"], item["custom_grading_company"], item["grade"], item["certification_number"], item["storage_location"], item["acquisition_date"], item["purchase_price"], item["notes"], item["is_favorite"]))
         duplicate_id = cur.lastrowid
         conn.commit()
         count = get_count(cur, item["card_id"])

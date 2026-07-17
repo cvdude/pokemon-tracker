@@ -31,3 +31,7 @@ Added raw and graded ownership fields, grading metadata, imported variant lookup
 ## Card variant importer
 
 Added an idempotent NAS importer for the TypeScript source card `variants` object and normalized variant metadata.
+
+## Card-specific collection variants
+
+Collection entries can now retain stable imported variant identifiers while preserving readable names and fallback custom values.
