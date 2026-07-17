@@ -63,6 +63,10 @@ def collection_page():
     trade = request.args.get("trade", "").lower() in {"1", "true", "yes"}
     wishlist_priority = request.args.get("wishlist_priority", "").title()
     wishlist_priority = wishlist_priority if wishlist_priority in {"Low", "Medium", "High"} else ""
+    never_valued = request.args.get("never_valued", "").lower() in {"1", "true", "yes"}
+    value_changed = request.args.get("value_changed", "").lower() in {"1", "true", "yes"}
+    purchased_month = request.args.get("purchased_month", "").lower() in {"1", "true", "yes"}
+    purchased_year = request.args.get("purchased_year", "").lower() in {"1", "true", "yes"}
     sort = request.args.get("sort", "name").lower()
     sort = sort if sort in SORT_COLUMNS else "name"
     order = request.args.get("order", "asc").lower()
@@ -88,6 +92,14 @@ def collection_page():
         params.append(wishlist_priority)
     if trade:
         clauses.append("COALESCE(ct.trade_quantity, 0) > 0")
+    if never_valued:
+        clauses.append("COALESCE(ct.total_quantity, 0) > 0 AND COALESCE(ct.valued_items, 0) = 0")
+    if value_changed:
+        clauses.append("COALESCE(ct.value_changed_items, 0) > 0")
+    if purchased_month:
+        clauses.append("COALESCE(ct.purchased_month_items, 0) > 0")
+    if purchased_year:
+        clauses.append("COALESCE(ct.purchased_year_items, 0) > 0")
     if query:
         like = f"%{query}%"
         clauses.append(
@@ -123,6 +135,10 @@ def collection_page():
                        SUM(CASE WHEN ownership_type = 'Graded' THEN 1 ELSE 0 END) AS graded_items,
                        SUM(CASE WHEN ownership_type = 'Raw' THEN 1 ELSE 0 END) AS ungraded_items,
                        SUM(CASE WHEN is_trade = 1 THEN quantity ELSE 0 END) AS trade_quantity,
+                       SUM(CASE WHEN estimated_value IS NOT NULL THEN 1 ELSE 0 END) AS valued_items,
+                       SUM(CASE WHEN estimated_value IS NOT NULL AND previous_estimated_value IS NOT NULL AND estimated_value <> previous_estimated_value THEN 1 ELSE 0 END) AS value_changed_items,
+                       SUM(CASE WHEN purchase_date >= date('now', 'start of month') THEN 1 ELSE 0 END) AS purchased_month_items,
+                       SUM(CASE WHEN purchase_date >= date('now', 'start of year') THEN 1 ELSE 0 END) AS purchased_year_items,
                        MAX(CASE WHEN TRIM(COALESCE(notes, '')) <> '' THEN 1 ELSE 0 END) AS has_notes
                 FROM collection_items
                 WHERE user_id = ? AND quantity > 0
@@ -156,7 +172,8 @@ def collection_page():
     filters = {
         "q": query, "ownership": ownership, "duplicates": duplicates, "grading": grading,
         "master": master, "has_notes": has_notes, "wishlist": wishlist, "trade": trade,
-        "wishlist_priority": wishlist_priority, "sort": sort, "order": order,
+        "wishlist_priority": wishlist_priority, "never_valued": never_valued, "value_changed": value_changed,
+        "purchased_month": purchased_month, "purchased_year": purchased_year, "sort": sort, "order": order,
     }
     sort_urls = {}
     for key in SORT_COLUMNS:

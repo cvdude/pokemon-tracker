@@ -81,7 +81,7 @@ Returns the current user’s summed collection quantity for a card.
 
 ### `POST /inventory/add/<card_id>` and `POST /collection/items/<card_id>`
 
-Equivalent add routes accept raw or graded ownership metadata. Graded items require `grading_company` and a decimal `grade`; raw items use the supported condition set. Each request creates an independent collection entry.
+Equivalent add routes accept raw or graded ownership metadata. Graded items require `grading_company` and a decimal `grade`; raw items use the supported condition set. Valuation-capable fields include `purchase_price`, `purchase_date`, `purchase_source`, `estimated_value`, `last_valuation_date`, `valuation_source`, `insurance_value`, and three-letter `currency`. Each request creates an independent collection entry.
 
 ```json
 {"success": true, "count": 2}

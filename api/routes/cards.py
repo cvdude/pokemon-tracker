@@ -275,7 +275,9 @@ def card_detail(card_id):
             """
             SELECT id, quantity, condition, variant, custom_variant, ownership_type, is_trade,
                    grading_company, custom_grading_company, grade, certification_number,
-                   storage_location, acquisition_date, purchase_price, notes
+                   storage_location, acquisition_date, purchase_price, purchase_date, purchase_source,
+                   estimated_value, previous_estimated_value, last_valuation_date, valuation_source,
+                   insurance_value, currency, notes
             FROM collection_items
             WHERE user_id = ? AND card_id = ?
             ORDER BY updated_at DESC, id DESC

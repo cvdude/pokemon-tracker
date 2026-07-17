@@ -22,6 +22,8 @@
         <div class="col-6 col-md-4 col-xl"><a href="/sets" class="text-decoration-none text-dark"><div class="card h-100 shadow-sm"><div class="card-body"><span class="text-muted small">Missing Variants</span><h2 class="mb-0 text-danger">{{ master.missing_variants }}</h2></div></div></a></div>
     </section>
 
+    <section class="row g-3 mb-4" aria-label="Collection value summary"><div class="col-md-4"><div class="card shadow-sm h-100"><div class="card-body"><span class="text-muted small">Total purchase cost</span><h2 class="mb-0">${{ "%.2f"|format(valuation.purchase_cost) }}</h2></div></div></div><div class="col-md-4"><div class="card shadow-sm h-100"><div class="card-body"><span class="text-muted small">Estimated collection value</span><h2 class="mb-0">${{ "%.2f"|format(valuation.estimated_value) }}</h2><small class="text-muted">Insurance: ${{ "%.2f"|format(valuation.insurance_value) }}</small></div></div></div><div class="col-md-4"><div class="card shadow-sm h-100"><div class="card-body"><span class="text-muted small">Unrealized gain / loss</span><h2 class="mb-0 {% if valuation.unrealized_gain >= 0 %}text-success{% else %}text-danger{% endif %}">{% if valuation.unrealized_gain >= 0 %}+{% endif %}${{ "%.2f"|format(valuation.unrealized_gain) }}</h2></div></div></div></section>
+
     <section class="card shadow-sm mb-4"><div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3"><div><h2 class="h5 mb-1">Collection Analytics</h2><p class="text-muted mb-0">Explore ownership, condition, storage, wishlist, trade, duplicates, and monthly growth.</p></div><a href="/analytics" class="btn btn-primary">Open Analytics</a></div></section>
 
     <section class="row g-4 mb-4" aria-label="Wishlist and trade widgets">

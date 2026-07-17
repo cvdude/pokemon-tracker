@@ -31,7 +31,7 @@ The application uses SQLite at `database/pokemon.db`. Foreign keys describe the 
 | `locations` | Legacy named storage locations. |
 | `inventory` | Legacy per-user inventory records. It links `user_id` to `users`, `card_id` to `cards`, and `location_id` to `locations`; it remains for backward compatibility and is migrated into `collection_items` at startup. |
 | `collection` | Legacy variant-based collection table. `variant_id` references `variants.id`. It is retained in the baseline schema but is not the active ownership engine. |
-| `collection_items` | Active ownership table. `user_id` references `users.id`; `card_id` references `cards.id`. It stores raw/graded ownership type, condition, variant and custom variant, language, grading company and custom company, grade, certification number, storage, acquisition, price, notes, timestamps, and `is_trade`. Each row is an independent owned entry. |
+| `collection_items` | Active ownership table. `user_id` references `users.id`; `card_id` references `cards.id`. It stores raw/graded ownership type, condition, variant and custom variant, language, grading company and custom company, grade, certification number, storage, acquisition, price, notes, timestamps, and `is_trade`. It also stores purchase date/source, per-copy purchase price, estimated and previous estimated value, valuation date/source, insurance value, and ISO currency. Each row is an independent owned entry. |
 | `wishlist_items` | User wishlist entries. `user_id` references `users.id`; `card_id` references `cards.id`; nullable `source_variant_id` identifies a specific desired imported variant. It stores priority, desired condition, target price, notes, and timestamps. One user may have one card-level and one row per source variant for the same card. |
 
 ## Catalog versus collection
@@ -41,6 +41,8 @@ Catalog tables describe what a Pokémon card *is*: its set, number, name, printe
 Collection tables describe what a user *owns*. `collection_items` records each owned grouping and its personal metadata. Catalog progress is derived from these records: a card is owned when the user has a positive summed quantity for that card.
 
 `wishlist_items` describes cards or specific imported variants a user wants; it does not change catalog or ownership progress. `collection_items.is_trade` marks an owned copy as available to trade without changing its quantity or completion state.
+
+Valuation fields belong to `collection_items`, never to catalog cards. `previous_estimated_value`, `last_valuation_date`, `valuation_source`, and `currency` retain enough context for future TCGplayer, Cardmarket, eBay, or other pricing integrations to update per-copy values without changing the schema.
 
 ## Master Set progress
 

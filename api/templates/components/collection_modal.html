@@ -16,6 +16,13 @@
                 <div class="col-md-6"><label class="form-label" for="collection-location">Storage location</label><input id="collection-location" class="form-control" name="storage_location" value="Unassigned" maxlength="100" required></div>
                 <div class="col-md-6"><label class="form-label" for="collection-date">Date acquired</label><input id="collection-date" class="form-control" name="acquisition_date" type="date" required></div>
                 <div class="col-md-6"><label class="form-label" for="collection-price">Purchase price</label><input id="collection-price" class="form-control" name="purchase_price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                <div class="col-md-6"><label class="form-label" for="collection-purchase-date">Purchase date</label><input id="collection-purchase-date" class="form-control" name="purchase_date" type="date"></div>
+                <div class="col-md-6"><label class="form-label" for="collection-purchase-source">Purchase source</label><input id="collection-purchase-source" class="form-control" name="purchase_source" maxlength="100" placeholder="Store, eBay, trade…"></div>
+                <div class="col-md-4"><label class="form-label" for="collection-estimated-value">Estimated value</label><input id="collection-estimated-value" class="form-control" name="estimated_value" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                <div class="col-md-4"><label class="form-label" for="collection-valuation-date">Last valuation</label><input id="collection-valuation-date" class="form-control" name="last_valuation_date" type="date"></div>
+                <div class="col-md-4"><label class="form-label" for="collection-valuation-source">Valuation source</label><input id="collection-valuation-source" class="form-control" name="valuation_source" maxlength="100" value="Manual"></div>
+                <div class="col-md-6"><label class="form-label" for="collection-insurance-value">Insurance value</label><input id="collection-insurance-value" class="form-control" name="insurance_value" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                <div class="col-md-6"><label class="form-label" for="collection-currency">Currency</label><input id="collection-currency" class="form-control" name="currency" maxlength="3" value="USD"></div>
                 <div class="col-12"><label class="form-label" for="collection-notes">Notes</label><textarea id="collection-notes" class="form-control" name="notes" rows="3" maxlength="2000"></textarea></div>
             </div>
             <p id="collection-form-error" class="text-danger small mt-3 mb-0" role="alert"></p>

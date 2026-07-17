@@ -75,3 +75,7 @@ Added card and variant wishlists, owned-copy trade flags, search filters, dashbo
 ## Collection analytics
 
 Added aggregate collection analytics, interactive linked charts, set completion lists, duplicate ranking, and monthly growth reporting.
+
+## Collection valuation and purchase tracking
+
+Added per-copy purchase, valuation, insurance, and provider metadata; value filters; dashboard totals; and value/ROI analytics.

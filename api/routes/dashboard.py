@@ -28,6 +28,16 @@ def home():
             """,
             (DEFAULT_USER_ID,),
         ).fetchone()
+        valuation = conn.execute(
+            """
+            SELECT COALESCE(SUM(purchase_price * quantity), 0) AS purchase_cost,
+                   COALESCE(SUM(estimated_value * quantity), 0) AS estimated_value,
+                   COALESCE(SUM(insurance_value * quantity), 0) AS insurance_value,
+                   COALESCE(SUM(CASE WHEN purchase_price IS NOT NULL AND estimated_value IS NOT NULL
+                                     THEN (estimated_value - purchase_price) * quantity ELSE 0 END), 0) AS unrealized_gain
+            FROM collection_items WHERE user_id = ? AND quantity > 0
+            """, (DEFAULT_USER_ID,)
+        ).fetchone()
         master = get_master_collection_summary(conn, DEFAULT_USER_ID)
         wishlist_summary = conn.execute("SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN priority = 'High' THEN 1 ELSE 0 END), 0) AS high_priority FROM wishlist_items WHERE user_id = ?", (DEFAULT_USER_ID,)).fetchone()
         high_priority_wishlist = conn.execute(
@@ -104,4 +114,5 @@ def home():
         missing_cards=missing_cards, completion=completion, master=master, recent_cards=recent_cards,
         duplicate_cards=duplicate_cards, top_sets=top_sets,
         wishlist_summary=wishlist_summary, high_priority_wishlist=high_priority_wishlist, trade_cards=trade_cards,
+        valuation=valuation,
     )

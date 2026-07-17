@@ -90,7 +90,34 @@ def collection_fields(data):
         fields["grade"] = grade
         fields["certification_number"] = (data.get("certification_number") or "").strip()[:100] or None
         fields["condition"] = ""
-    fields.update({"storage_location": location, "acquisition_date": acquired, "purchase_price": price, "notes": (data.get("notes") or "").strip()[:2000] or None})
+    purchase_date = (data.get("purchase_date") or "").strip()
+    valuation_date = (data.get("last_valuation_date") or "").strip()
+    try:
+        purchase_date = date.fromisoformat(purchase_date).isoformat() if purchase_date else None
+        valuation_date = date.fromisoformat(valuation_date).isoformat() if valuation_date else None
+    except ValueError:
+        return None, "Purchase and valuation dates must use YYYY-MM-DD."
+    monetary_fields = {"estimated_value": data.get("estimated_value"), "insurance_value": data.get("insurance_value")}
+    values = {}
+    for name, value in monetary_fields.items():
+        try:
+            values[name] = float(Decimal(str(value))) if value not in (None, "") else None
+        except (InvalidOperation, ValueError):
+            return None, f"{name.replace('_', ' ').title()} must be a valid number."
+        if values[name] is not None and values[name] < 0:
+            return None, f"{name.replace('_', ' ').title()} cannot be negative."
+    currency = (data.get("currency") or "USD").strip().upper()
+    if len(currency) != 3 or not currency.isalpha():
+        return None, "Currency must be a three-letter code."
+    fields.update({
+        "storage_location": location, "acquisition_date": acquired, "purchase_price": price,
+        "purchase_date": purchase_date, "purchase_source": (data.get("purchase_source") or "").strip()[:100] or None,
+        "estimated_value": values["estimated_value"], "previous_estimated_value": None,
+        "last_valuation_date": valuation_date or (date.today().isoformat() if values["estimated_value"] is not None else None),
+        "valuation_source": (data.get("valuation_source") or "Manual").strip()[:100] or None,
+        "insurance_value": values["insurance_value"], "currency": currency,
+        "notes": (data.get("notes") or "").strip()[:2000] or None,
+    })
     return fields, None
 
 
@@ -223,7 +250,7 @@ def add_card(card_id):
             return jsonify({"success": False, "error": "Card not found."}), 404
         if fields.get("source_variant_id") and cur.execute("SELECT 1 FROM variants WHERE card_id = ? AND source_variant_id = ?", (card_id, fields["source_variant_id"])).fetchone() is None:
             return jsonify({"success": False, "error": "Selected variant does not belong to this card."}), 400
-        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, source_variant_id, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, card_id, *fields.values()))
+        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, source_variant_id, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, purchase_date, purchase_source, estimated_value, previous_estimated_value, last_valuation_date, valuation_source, insurance_value, currency, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, card_id, *fields.values()))
         item_id = cur.lastrowid
         conn.commit()
         count = get_count(cur, card_id)
@@ -264,7 +291,11 @@ def collection_item(item_id):
             fields, error = collection_fields(request_data())
             if error:
                 return jsonify({"success": False, "error": error}), 400
-            cur.execute("UPDATE collection_items SET quantity = ?, condition = ?, variant = ?, custom_variant = ?, source_variant_id = ?, language = ?, ownership_type = ?, grading_company = ?, custom_grading_company = ?, grade = ?, certification_number = ?, storage_location = ?, acquisition_date = ?, purchase_price = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (*fields.values(), item_id))
+            if fields["estimated_value"] != item["estimated_value"] and fields["estimated_value"] is not None:
+                fields["previous_estimated_value"] = item["estimated_value"]
+            else:
+                fields["previous_estimated_value"] = item["previous_estimated_value"]
+            cur.execute("UPDATE collection_items SET quantity = ?, condition = ?, variant = ?, custom_variant = ?, source_variant_id = ?, language = ?, ownership_type = ?, grading_company = ?, custom_grading_company = ?, grade = ?, certification_number = ?, storage_location = ?, acquisition_date = ?, purchase_price = ?, purchase_date = ?, purchase_source = ?, estimated_value = ?, previous_estimated_value = ?, last_valuation_date = ?, valuation_source = ?, insurance_value = ?, currency = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (*fields.values(), item_id))
         conn.commit()
         count = get_count(cur, item["card_id"])
     finally:
@@ -298,7 +329,7 @@ def duplicate_collection_item(item_id):
         item = item_or_404(cur, item_id)
         if item is None:
             return jsonify({"success": False, "error": "Collection item not found."}), 404
-        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, source_variant_id, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, notes, is_favorite) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, item["card_id"], item["quantity"], item["condition"], item["variant"], item["custom_variant"], item["source_variant_id"], item["language"], item["ownership_type"], item["grading_company"], item["custom_grading_company"], item["grade"], item["certification_number"], item["storage_location"], item["acquisition_date"], item["purchase_price"], item["notes"], item["is_favorite"]))
+        cur.execute("INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, custom_variant, source_variant_id, language, ownership_type, grading_company, custom_grading_company, grade, certification_number, storage_location, acquisition_date, purchase_price, purchase_date, purchase_source, estimated_value, previous_estimated_value, last_valuation_date, valuation_source, insurance_value, currency, notes, is_favorite, is_trade) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, item["card_id"], item["quantity"], item["condition"], item["variant"], item["custom_variant"], item["source_variant_id"], item["language"], item["ownership_type"], item["grading_company"], item["custom_grading_company"], item["grade"], item["certification_number"], item["storage_location"], item["acquisition_date"], item["purchase_price"], item["purchase_date"], item["purchase_source"], item["estimated_value"], item["previous_estimated_value"], item["last_valuation_date"], item["valuation_source"], item["insurance_value"], item["currency"], item["notes"], item["is_favorite"], item["is_trade"]))
         duplicate_id = cur.lastrowid
         conn.commit()
         count = get_count(cur, item["card_id"])

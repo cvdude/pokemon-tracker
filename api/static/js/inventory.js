@@ -77,6 +77,13 @@ function showEditor(item = null, focusLocation = false) {
     form.grading_company.value = item?.grading_company || "PSA";
     form.certification_number.value = item?.certification_number || "";
     form.notes.value = item?.notes || "";
+    form.purchase_date.value = item?.purchase_date || "";
+    form.purchase_source.value = item?.purchase_source || "";
+    form.estimated_value.value = item?.estimated_value ?? "";
+    form.last_valuation_date.value = item?.last_valuation_date || "";
+    form.valuation_source.value = item?.valuation_source || "Manual";
+    form.insurance_value.value = item?.insurance_value ?? "";
+    form.currency.value = item?.currency || "USD";
     ownershipFields();
     toggleOtherFields();
     if (focusLocation) document.getElementById("collection-location").focus();

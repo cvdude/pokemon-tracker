@@ -37,6 +37,14 @@ def create_collection_items(conn):
             storage_location TEXT NOT NULL DEFAULT 'Unassigned',
             acquisition_date TEXT,
             purchase_price REAL,
+            purchase_date TEXT,
+            purchase_source TEXT,
+            estimated_value REAL,
+            previous_estimated_value REAL,
+            last_valuation_date TEXT,
+            valuation_source TEXT,
+            insurance_value REAL,
+            currency TEXT NOT NULL DEFAULT 'USD',
             notes TEXT,
             is_favorite INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -91,6 +99,14 @@ def ensure_collection_schema():
                 "grade": "REAL",
                 "certification_number": "TEXT",
                 "is_trade": "INTEGER NOT NULL DEFAULT 0",
+                "purchase_date": "TEXT",
+                "purchase_source": "TEXT",
+                "estimated_value": "REAL",
+                "previous_estimated_value": "REAL",
+                "last_valuation_date": "TEXT",
+                "valuation_source": "TEXT",
+                "insurance_value": "REAL",
+                "currency": "TEXT NOT NULL DEFAULT 'USD'",
             }
             for name, definition in additions.items():
                 if name not in columns:
@@ -100,6 +116,8 @@ def ensure_collection_schema():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_updated ON collection_items (user_id, updated_at DESC)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_storage ON collection_items (user_id, storage_location)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_trade ON collection_items (user_id, is_trade, card_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_purchase_date ON collection_items (user_id, purchase_date)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_valuation ON collection_items (user_id, last_valuation_date)")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS wishlist_items (

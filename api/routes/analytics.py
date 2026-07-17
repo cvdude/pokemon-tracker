@@ -104,6 +104,40 @@ def analytics_page():
             FROM collection_items WHERE user_id = ? AND quantity > 0 AND acquisition_date GLOB '????-??-??'
             GROUP BY substr(acquisition_date, 1, 7) ORDER BY label
         """)
+        value_by_set = _rows(conn, """
+            SELECT s.name AS label, COALESCE(SUM(ci.purchase_price * ci.quantity), 0) AS purchase_cost,
+                   COALESCE(SUM(ci.estimated_value * ci.quantity), 0) AS estimated_value,
+                   COALESCE(SUM((ci.estimated_value - ci.purchase_price) * ci.quantity), 0) AS gain
+            FROM collection_items ci JOIN cards c ON c.id = ci.card_id JOIN sets s ON s.id = c.set_id
+            WHERE ci.user_id = ? AND ci.quantity > 0 GROUP BY s.id, s.name HAVING estimated_value > 0
+            ORDER BY estimated_value DESC, label LIMIT 20
+        """, link_key="label")
+        value_by_series = _rows(conn, """
+            SELECT COALESCE(se.name, 'Unknown') AS label, COALESCE(SUM(ci.purchase_price * ci.quantity), 0) AS purchase_cost,
+                   COALESCE(SUM(ci.estimated_value * ci.quantity), 0) AS estimated_value,
+                   COALESCE(SUM((ci.estimated_value - ci.purchase_price) * ci.quantity), 0) AS gain
+            FROM collection_items ci JOIN cards c ON c.id = ci.card_id JOIN sets s ON s.id = c.set_id
+            LEFT JOIN series se ON se.id = s.series_id
+            WHERE ci.user_id = ? AND ci.quantity > 0 GROUP BY se.id, se.name HAVING estimated_value > 0
+            ORDER BY estimated_value DESC, label LIMIT 20
+        """, link_key="label")
+        most_valuable = _rows(conn, """
+            SELECT c.id AS card_id, c.name, c.number, s.name AS set_name, SUM(ci.quantity) AS quantity,
+                   SUM(ci.estimated_value * ci.quantity) AS estimated_value
+            FROM collection_items ci JOIN cards c ON c.id = ci.card_id JOIN sets s ON s.id = c.set_id
+            WHERE ci.user_id = ? AND ci.quantity > 0 AND ci.estimated_value IS NOT NULL
+            GROUP BY c.id, c.name, c.number, s.name ORDER BY estimated_value DESC, c.name LIMIT 20
+        """)
+        roi_cards = _rows(conn, """
+            SELECT c.id AS card_id, c.name, c.number, s.name AS set_name,
+                   SUM(ci.purchase_price * ci.quantity) AS purchase_cost,
+                   SUM(ci.estimated_value * ci.quantity) AS estimated_value,
+                   ROUND(100.0 * (SUM(ci.estimated_value * ci.quantity) - SUM(ci.purchase_price * ci.quantity)) / SUM(ci.purchase_price * ci.quantity), 1) AS roi
+            FROM collection_items ci JOIN cards c ON c.id = ci.card_id JOIN sets s ON s.id = c.set_id
+            WHERE ci.user_id = ? AND ci.quantity > 0 AND ci.purchase_price IS NOT NULL AND ci.estimated_value IS NOT NULL
+            GROUP BY c.id, c.name, c.number, s.name HAVING purchase_cost > 0
+            ORDER BY roi DESC, estimated_value DESC LIMIT 20
+        """)
     finally:
         conn.close()
     return render_template(
@@ -111,4 +145,5 @@ def analytics_page():
         rarity=rarity, stage=stage, condition=condition, grades=grades, storage=storage,
         wishlist=wishlist, trade_summary=trade_summary, most_complete=most_complete,
         least_complete=least_complete, duplicates=duplicates, growth=growth,
+        value_by_set=value_by_set, value_by_series=value_by_series, most_valuable=most_valuable, roi_cards=roi_cards,
     )
