@@ -1,0 +1,10 @@
+.git/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+node_modules/
+server/node_modules/
+database/*.db
+backups/

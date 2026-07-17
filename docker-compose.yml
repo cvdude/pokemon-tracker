@@ -1,0 +1,9 @@
+services:
+  evodeck:
+    build: .
+    container_name: evodeck
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /volume1/web/pokemon-tracker/database:/app/database
