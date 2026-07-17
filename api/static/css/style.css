@@ -5,3 +5,19 @@ body[data-resolved-theme="dark"] .text-dark { color: #f8f9fa !important; }
 body[data-resolved-theme="dark"] .bg-light, body[data-resolved-theme="dark"] .table-light { background-color: #252a2f !important; color: #e9ecef !important; }
 body[data-card-image-size="small"] img[data-card-image], body[data-card-image-size="small"] .card-image { width: 42px !important; height: 59px !important; }
 body[data-card-image-size="large"] img[data-card-image], body[data-card-image-size="large"] .card-image { width: 90px !important; height: 126px !important; }
+.viewer-launch { position: relative; cursor: zoom-in; max-width: 100%; }
+.viewer-launch-hint { position: absolute; right: .5rem; bottom: .5rem; padding: .25rem .5rem; border-radius: .25rem; background: rgba(0, 0, 0, .72); color: white; font-size: .8rem; }
+.image-viewer { position: fixed; z-index: 2000; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: .75rem; padding: .75rem; background: rgba(10, 12, 15, .98); color: white; }
+.image-viewer-toolbar, .image-viewer-controls, .image-viewer-scans { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem; }
+.image-viewer-toolbar { justify-content: space-between; }
+.image-viewer-stage { position: relative; display: flex; min-height: 0; overflow: hidden; align-items: center; justify-content: center; touch-action: none; cursor: grab; }
+.image-viewer-stage:active { cursor: grabbing; }
+.image-viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center; transition: transform .08s linear; user-select: none; }
+.image-viewer-scans .active { background: white; color: #111; }
+.variant-comparison { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 1rem; overflow: auto; align-content: start; padding: .5rem; }
+.variant-comparison-card { display: grid; gap: .5rem; padding: .75rem; border: 2px solid #6c757d; border-radius: .5rem; background: #20252b; text-align: center; }
+.variant-comparison-card.owned { border-color: #198754; }
+.variant-comparison-card.missing { border-color: #ffc107; }
+.variant-comparison-card img { width: 100%; max-height: 55vh; object-fit: contain; }
+body.viewer-open { overflow: hidden; }
+@media (max-width: 576px) { .image-viewer { padding: .5rem; gap: .5rem; } .image-viewer-toolbar { align-items: flex-start; } .image-viewer-toolbar strong { width: 100%; } .image-viewer-toolbar > div { width: 100%; } .image-viewer-toolbar .btn { flex: 1; } .variant-comparison { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; padding: 0; } .variant-comparison-card { padding: .4rem; font-size: .85rem; } }

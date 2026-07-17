@@ -47,6 +47,13 @@ def row_to_dict(row):
     return dict(row) if row is not None else None
 
 
+def image_url(source):
+    """Normalize catalog image sources to the high-resolution TCGdex image URL."""
+    if not source:
+        return None
+    return source if source.endswith((".webp", ".png", ".jpg", ".jpeg")) else f"{source}/high.webp"
+
+
 def positive_int(value, default, maximum=None):
     try:
         result = int(value)
@@ -286,6 +293,17 @@ def card_detail(card_id):
         ).fetchall()
         master_variants = get_card_master_variants(conn, card_id, DEFAULT_USER_ID)
         wishlist_items = conn.execute("SELECT id, source_variant_id, priority, desired_condition, target_price, notes FROM wishlist_items WHERE user_id = ? AND card_id = ? ORDER BY CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END", (DEFAULT_USER_ID, card_id)).fetchall()
+        image_rows = conn.execute("SELECT small, large FROM card_images WHERE card_id = ?", (card_id,)).fetchall()
+        scan_sources = [card["image_large"], card["image_small"]]
+        for image in image_rows:
+            scan_sources.extend([image["large"], image["small"]])
+        viewer_scans = []
+        seen_images = set()
+        for source in scan_sources:
+            url = image_url(source)
+            if url and url not in seen_images:
+                seen_images.add(url)
+                viewer_scans.append({"url": url, "label": f"Scan {len(viewer_scans) + 1}"})
         siblings = conn.execute(
             "SELECT id, name FROM cards WHERE set_id = ? ORDER BY CASE WHEN number GLOB '[0-9]*' THEN CAST(number AS INTEGER) END, number, id",
             (card["set_id"],),
@@ -299,6 +317,7 @@ def card_detail(card_id):
         weaknesses=weaknesses, resistances=resistances, retreat=retreat,
         owned_items=owned_items, master_variants=master_variants,
         wishlist_items=wishlist_items,
+        viewer_scans=viewer_scans,
         previous_card=siblings[position - 1] if position else None,
         next_card=siblings[position + 1] if position + 1 < len(siblings) else None,
     )

@@ -87,3 +87,7 @@ Added a backup workspace with versioned JSON and CSV exports for collections, in
 ## User settings and preferences
 
 Added extensible per-user preferences, a settings workspace, theme and image-size controls, collection sort and filter defaults, currency and date formatting, and configurable dashboard widget visibility and order.
+
+## Image viewer and variant comparison
+
+Added a responsive full-screen card viewer with high-resolution scans, zoom and pan, available scan selection, previous/next viewer navigation, lazy-loaded images, and side-by-side Master Set variant ownership comparison.
