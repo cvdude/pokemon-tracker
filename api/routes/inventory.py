@@ -13,6 +13,7 @@ CONDITIONS = {"Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavi
 VARIANTS = {"Normal", "Holo", "Reverse Holo", "1st Edition", "Shadowless", "Promo"}
 LANGUAGES = {"English", "Japanese"}
 GRADING_COMPANIES = {"PSA", "CGC", "Beckett/BGS", "SGC", "TAG", "ACE"}
+WISHLIST_PRIORITIES = {"Low", "Medium", "High"}
 
 
 def get_connection():
@@ -97,6 +98,29 @@ def item_or_404(cur, item_id):
     return cur.execute("SELECT * FROM collection_items WHERE id = ? AND user_id = ?", (item_id, DEFAULT_USER_ID)).fetchone()
 
 
+def wishlist_fields(data):
+    priority = (data.get("priority") or "Medium").strip().title()
+    if priority not in WISHLIST_PRIORITIES:
+        return None, "Select a valid wishlist priority."
+    desired_condition = (data.get("desired_condition") or "").strip()[:100] or None
+    if desired_condition and desired_condition not in CONDITIONS:
+        return None, "Select a valid desired condition."
+    price = data.get("target_price")
+    try:
+        target_price = float(Decimal(str(price))) if price not in (None, "") else None
+    except (InvalidOperation, ValueError):
+        return None, "Target price must be a valid number."
+    if target_price is not None and target_price < 0:
+        return None, "Target price cannot be negative."
+    return {
+        "source_variant_id": (data.get("source_variant_id") or "").strip() or None,
+        "priority": priority,
+        "desired_condition": desired_condition,
+        "target_price": target_price,
+        "notes": (data.get("notes") or "").strip()[:2000] or None,
+    }, None
+
+
 @inventory.route("/inventory/count/<card_id>")
 def inventory_count(card_id):
     conn = get_connection()
@@ -128,6 +152,62 @@ def collection_variants(card_id):
     finally:
         conn.close()
     return jsonify({"variants": [{"id": row["source_variant_id"], "name": row["name"] or row["variant_type"]} for row in rows if row["source_variant_id"]]})
+
+
+@inventory.route("/wishlist/items/card/<card_id>")
+def wishlist_items_for_card(card_id):
+    conn = get_connection()
+    try:
+        rows = conn.execute("SELECT * FROM wishlist_items WHERE user_id = ? AND card_id = ? ORDER BY CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END, updated_at DESC", (DEFAULT_USER_ID, card_id)).fetchall()
+    finally:
+        conn.close()
+    return jsonify({"items": [dict(row) for row in rows]})
+
+
+@inventory.route("/wishlist/items/<card_id>", methods=["POST"])
+def add_wishlist_item(card_id):
+    fields, error = wishlist_fields(request_data())
+    if error:
+        return jsonify({"success": False, "error": error}), 400
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        if cur.execute("SELECT 1 FROM cards WHERE id = ?", (card_id,)).fetchone() is None:
+            return jsonify({"success": False, "error": "Card not found."}), 404
+        if fields["source_variant_id"] and cur.execute("SELECT 1 FROM variants WHERE card_id = ? AND source_variant_id = ?", (card_id, fields["source_variant_id"])).fetchone() is None:
+            return jsonify({"success": False, "error": "Selected variant does not belong to this card."}), 400
+        existing = cur.execute("SELECT id FROM wishlist_items WHERE user_id = ? AND card_id = ? AND source_variant_id IS ?", (DEFAULT_USER_ID, card_id, fields["source_variant_id"])).fetchone()
+        if existing:
+            cur.execute("UPDATE wishlist_items SET priority = ?, desired_condition = ?, target_price = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (fields["priority"], fields["desired_condition"], fields["target_price"], fields["notes"], existing["id"]))
+            item_id, status = existing["id"], 200
+        else:
+            cur.execute("INSERT INTO wishlist_items (user_id, card_id, source_variant_id, priority, desired_condition, target_price, notes) VALUES (?, ?, ?, ?, ?, ?, ?)", (DEFAULT_USER_ID, card_id, *fields.values()))
+            item_id, status = cur.lastrowid, 201
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({"success": True, "item_id": item_id}), status
+
+
+@inventory.route("/wishlist/items/<int:item_id>", methods=["PATCH", "DELETE"])
+def wishlist_item(item_id):
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        item = cur.execute("SELECT * FROM wishlist_items WHERE id = ? AND user_id = ?", (item_id, DEFAULT_USER_ID)).fetchone()
+        if item is None:
+            return jsonify({"success": False, "error": "Wishlist item not found."}), 404
+        if request.method == "DELETE":
+            cur.execute("DELETE FROM wishlist_items WHERE id = ?", (item_id,))
+        else:
+            fields, error = wishlist_fields(request_data())
+            if error:
+                return jsonify({"success": False, "error": error}), 400
+            cur.execute("UPDATE wishlist_items SET priority = ?, desired_condition = ?, target_price = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (fields["priority"], fields["desired_condition"], fields["target_price"], fields["notes"], item_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({"success": True})
 
 
 @inventory.route("/inventory/add/<card_id>", methods=["POST"])
@@ -190,6 +270,24 @@ def collection_item(item_id):
     finally:
         conn.close()
     return jsonify({"success": True, "count": count})
+
+
+@inventory.route("/collection/items/<int:item_id>/trade", methods=["PATCH"])
+def collection_item_trade(item_id):
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        item = item_or_404(cur, item_id)
+        if item is None:
+            return jsonify({"success": False, "error": "Collection item not found."}), 404
+        trade = request_data().get("is_trade")
+        if not isinstance(trade, bool):
+            return jsonify({"success": False, "error": "is_trade must be true or false."}), 400
+        cur.execute("UPDATE collection_items SET is_trade = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (int(trade), item_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({"success": True, "is_trade": trade})
 
 
 @inventory.route("/collection/items/<int:item_id>/duplicate", methods=["POST"])

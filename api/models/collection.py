@@ -33,6 +33,7 @@ def create_collection_items(conn):
             custom_grading_company TEXT,
             grade REAL,
             certification_number TEXT,
+            is_trade INTEGER NOT NULL DEFAULT 0,
             storage_location TEXT NOT NULL DEFAULT 'Unassigned',
             acquisition_date TEXT,
             purchase_price REAL,
@@ -89,6 +90,7 @@ def ensure_collection_schema():
                 "custom_grading_company": "TEXT",
                 "grade": "REAL",
                 "certification_number": "TEXT",
+                "is_trade": "INTEGER NOT NULL DEFAULT 0",
             }
             for name, definition in additions.items():
                 if name not in columns:
@@ -97,6 +99,27 @@ def ensure_collection_schema():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_card ON collection_items (user_id, card_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_updated ON collection_items (user_id, updated_at DESC)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_storage ON collection_items (user_id, storage_location)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_trade ON collection_items (user_id, is_trade, card_id)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS wishlist_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                card_id TEXT NOT NULL,
+                source_variant_id TEXT,
+                priority TEXT NOT NULL DEFAULT 'Medium',
+                desired_condition TEXT,
+                target_price REAL,
+                notes TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (card_id) REFERENCES cards(id)
+            )
+            """
+        )
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_wishlist_items_unique ON wishlist_items (user_id, card_id, COALESCE(source_variant_id, ''))")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_priority ON wishlist_items (user_id, priority, card_id)")
         variant_columns = {item["name"] for item in conn.execute("PRAGMA table_info(variants)")}
         if "source_variant_id" in variant_columns:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_variants_card_source ON variants (card_id, source_variant_id)")

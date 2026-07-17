@@ -59,6 +59,10 @@ def collection_page():
     grading = request.args.get("grading", "").lower()
     master = request.args.get("master", "").lower()
     has_notes = request.args.get("has_notes", "").lower() in {"1", "true", "yes"}
+    wishlist = request.args.get("wishlist", "").lower() in {"1", "true", "yes"}
+    trade = request.args.get("trade", "").lower() in {"1", "true", "yes"}
+    wishlist_priority = request.args.get("wishlist_priority", "").title()
+    wishlist_priority = wishlist_priority if wishlist_priority in {"Low", "Medium", "High"} else ""
     sort = request.args.get("sort", "name").lower()
     sort = sort if sort in SORT_COLUMNS else "name"
     order = request.args.get("order", "asc").lower()
@@ -77,6 +81,13 @@ def collection_page():
         clauses.append("COALESCE(ct.ungraded_items, 0) > 0")
     if has_notes:
         clauses.append("COALESCE(ct.has_notes, 0) > 0")
+    if wishlist:
+        clauses.append("COALESCE(wt.item_count, 0) > 0")
+    if wishlist_priority:
+        clauses.append("wt.priority = ?")
+        params.append(wishlist_priority)
+    if trade:
+        clauses.append("COALESCE(ct.trade_quantity, 0) > 0")
     if query:
         like = f"%{query}%"
         clauses.append(
@@ -111,31 +122,41 @@ def collection_page():
                 SELECT card_id, SUM(quantity) AS total_quantity, MAX(updated_at) AS last_updated,
                        SUM(CASE WHEN ownership_type = 'Graded' THEN 1 ELSE 0 END) AS graded_items,
                        SUM(CASE WHEN ownership_type = 'Raw' THEN 1 ELSE 0 END) AS ungraded_items,
+                       SUM(CASE WHEN is_trade = 1 THEN quantity ELSE 0 END) AS trade_quantity,
                        MAX(CASE WHEN TRIM(COALESCE(notes, '')) <> '' THEN 1 ELSE 0 END) AS has_notes
                 FROM collection_items
                 WHERE user_id = ? AND quantity > 0
                 GROUP BY card_id
+            ), wishlist_totals AS (
+                SELECT card_id, COUNT(*) AS item_count,
+                       MIN(CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END) AS priority_rank,
+                       CASE MIN(CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END)
+                           WHEN 1 THEN 'High' WHEN 2 THEN 'Medium' ELSE 'Low' END AS priority
+                FROM wishlist_items WHERE user_id = ? GROUP BY card_id
             )
             SELECT c.id AS card_id, c.name, c.number, c.rarity, c.hp, c.category, c.artist,
                    c.image_small, s.id AS set_id, s.name AS set_name, se.name AS series_name,
-                   COALESCE(ct.total_quantity, 0) AS quantity, ct.last_updated,
+                   COALESCE(ct.total_quantity, 0) AS quantity, COALESCE(ct.trade_quantity, 0) AS trade_quantity,
+                   COALESCE(wt.item_count, 0) AS wishlist_count, wt.priority AS wishlist_priority, ct.last_updated,
                    COUNT(*) OVER () AS filtered_total
             FROM cards c
             JOIN sets s ON s.id = c.set_id
             LEFT JOIN series se ON se.id = s.series_id
             LEFT JOIN card_totals ct ON ct.card_id = c.id
+            LEFT JOIN wishlist_totals wt ON wt.card_id = c.id
             {where}
             ORDER BY {SORT_COLUMNS[sort]} {order.upper()}, c.id ASC
             LIMIT {PAGE_SIZE}
             """,
-            params,
+            [DEFAULT_USER_ID, DEFAULT_USER_ID, *params[1:]],
         ).fetchall()
     finally:
         conn.close()
 
     filters = {
         "q": query, "ownership": ownership, "duplicates": duplicates, "grading": grading,
-        "master": master, "has_notes": has_notes, "sort": sort, "order": order,
+        "master": master, "has_notes": has_notes, "wishlist": wishlist, "trade": trade,
+        "wishlist_priority": wishlist_priority, "sort": sort, "order": order,
     }
     sort_urls = {}
     for key in SORT_COLUMNS:

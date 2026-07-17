@@ -104,6 +104,18 @@ Returns every separate collection entry owned for the card, newest first.
 {"items": [{"id": 12, "quantity": 1, "condition": "Near Mint", "variant": "Normal", "language": "English"}]}
 ```
 
+### `GET /wishlist/items/card/<card_id>`
+
+Returns the current user's card-level and source-variant-specific wishlist entries for a card.
+
+### `POST /wishlist/items/<card_id>`
+
+Creates or updates a wishlist entry. Optional `source_variant_id` targets one imported variant. Accepted fields are `priority` (`Low`, `Medium`, or `High`), `desired_condition`, `target_price`, and `notes`.
+
+### `PATCH` / `DELETE /wishlist/items/<item_id>`
+
+Updates or removes one current-user wishlist entry. PATCH accepts the same editable wishlist fields as POST.
+
 ### `PATCH /collection/items/<item_id>`
 
 Updates one collection item. Accepts the same fields as add; `quantity` is optional for a partial update.
@@ -117,6 +129,10 @@ Returns `400` for invalid data and `404` for an item outside the current user’
 ### `DELETE /collection/items/<item_id>`
 
 Deletes exactly one collection entry and returns the remaining card quantity: `{"success":true,"count":1}`. Returns `404` when the entry is absent.
+
+### `PATCH /collection/items/<item_id>/trade`
+
+Sets an owned collection item's trade-list flag. Send `{"is_trade": true}` to make a copy available for trade or `false` to remove it from the trade list.
 
 ### `POST /collection/items/<item_id>/duplicate`
 

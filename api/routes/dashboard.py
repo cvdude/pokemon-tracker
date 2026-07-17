@@ -29,6 +29,24 @@ def home():
             (DEFAULT_USER_ID,),
         ).fetchone()
         master = get_master_collection_summary(conn, DEFAULT_USER_ID)
+        wishlist_summary = conn.execute("SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN priority = 'High' THEN 1 ELSE 0 END), 0) AS high_priority FROM wishlist_items WHERE user_id = ?", (DEFAULT_USER_ID,)).fetchone()
+        high_priority_wishlist = conn.execute(
+            """
+            SELECT w.id, w.source_variant_id, w.priority, w.target_price, c.id AS card_id, c.name, c.number, c.image_small, s.name AS set_name
+            FROM wishlist_items w JOIN cards c ON c.id = w.card_id JOIN sets s ON s.id = c.set_id
+            WHERE w.user_id = ? AND w.priority = 'High'
+            ORDER BY w.updated_at DESC, w.id DESC LIMIT 6
+            """, (DEFAULT_USER_ID,)
+        ).fetchall()
+        trade_cards = conn.execute(
+            """
+            SELECT c.id AS card_id, c.name, c.number, c.image_small, s.name AS set_name, SUM(ci.quantity) AS quantity
+            FROM collection_items ci JOIN cards c ON c.id = ci.card_id JOIN sets s ON s.id = c.set_id
+            WHERE ci.user_id = ? AND ci.is_trade = 1 AND ci.quantity > 0
+            GROUP BY c.id, c.name, c.number, c.image_small, s.name
+            ORDER BY quantity DESC, c.name COLLATE NOCASE LIMIT 6
+            """, (DEFAULT_USER_ID,)
+        ).fetchall()
         recent_cards = conn.execute(
             """
             SELECT ci.id, ci.quantity, ci.variant, ci.updated_at, c.id AS card_id,
@@ -85,4 +103,5 @@ def home():
         owned_cards=owned_cards, total_copies=collection["total_copies"], started_sets=collection["started_sets"],
         missing_cards=missing_cards, completion=completion, master=master, recent_cards=recent_cards,
         duplicate_cards=duplicate_cards, top_sets=top_sets,
+        wishlist_summary=wishlist_summary, high_priority_wishlist=high_priority_wishlist, trade_cards=trade_cards,
     )

@@ -105,6 +105,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (action === "edit") { await loadVariants(); showEditor(collectionItems.find(item => item.id === itemId)); }
         if (action === "edit-item") await editCollectionItem(button.dataset.cardId, button.dataset.cardName, itemId);
         if (action === "move-item") await editCollectionItem(button.dataset.cardId, button.dataset.cardName, itemId, true);
+        if (action === "trade-item") {
+            await fetch(`/collection/items/${itemId}/trade`, {method: "PATCH", headers: {"Content-Type": "application/json"}, body: JSON.stringify({is_trade: button.dataset.isTrade === "1"})});
+            location.reload();
+        }
         if ((action === "delete" || action === "delete-item") && confirm("Delete this owned copy?")) {
             await fetch(`/collection/items/${itemId}`, {method: "DELETE"});
             location.reload();

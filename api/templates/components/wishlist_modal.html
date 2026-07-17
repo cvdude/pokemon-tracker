@@ -1,0 +1,12 @@
+<div id="wishlist-modal" class="modal" tabindex="-1" style="display:none; background:rgba(0, 0, 0, .5);">
+    <div class="modal-dialog"><form id="wishlist-form" class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Add to Wishlist</h5><button type="button" class="btn-close" aria-label="Close" data-wishlist-action="close"></button></div>
+        <div class="modal-body"><p id="wishlist-card-name" class="text-muted"></p><input id="wishlist-variant-id" type="hidden"><div id="wishlist-variant-name" class="small text-muted mb-3"></div>
+            <div class="mb-3"><label class="form-label" for="wishlist-priority">Priority</label><select id="wishlist-priority" class="form-select" name="priority"><option>Low</option><option selected>Medium</option><option>High</option></select></div>
+            <div class="mb-3"><label class="form-label" for="wishlist-condition">Desired condition</label><select id="wishlist-condition" class="form-select" name="desired_condition"><option value="">Any condition</option><option>Mint</option><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></div>
+            <div class="mb-3"><label class="form-label" for="wishlist-price">Target price</label><input id="wishlist-price" class="form-control" name="target_price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+            <div><label class="form-label" for="wishlist-notes">Notes</label><textarea id="wishlist-notes" class="form-control" name="notes" rows="3" maxlength="2000"></textarea></div><p id="wishlist-error" class="text-danger small mt-3 mb-0" role="alert"></p>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-wishlist-action="close">Cancel</button><button type="submit" class="btn btn-primary">Save Wishlist Item</button></div>
+    </form></div>
+</div>

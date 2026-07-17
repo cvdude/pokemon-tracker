@@ -67,3 +67,7 @@ Added aggregate Master Set, missing-card, recent-addition, duplicate-card, and t
 ## Advanced collection search and filtering
 
 Added global catalog search, composable collection filters, URL-persisted state, sortable results, and collection-query indexes.
+
+## Wishlist and trade list
+
+Added card and variant wishlists, owned-copy trade flags, search filters, dashboard widgets, and safe schema migration support.

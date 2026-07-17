@@ -170,6 +170,7 @@ CREATE TABLE collection_items (
     custom_grading_company TEXT,
     grade REAL,
     certification_number TEXT,
+    is_trade INTEGER NOT NULL DEFAULT 0,
     storage_location TEXT NOT NULL DEFAULT 'Unassigned',
     acquisition_date TEXT,
     purchase_price REAL,
@@ -183,3 +184,18 @@ CREATE TABLE collection_items (
 
 CREATE INDEX idx_collection_items_card_user
 ON collection_items (card_id, user_id);
+
+CREATE TABLE wishlist_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL DEFAULT 1,
+    card_id TEXT NOT NULL,
+    source_variant_id TEXT,
+    priority TEXT NOT NULL DEFAULT 'Medium',
+    desired_condition TEXT,
+    target_price REAL,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (card_id) REFERENCES cards(id)
+);

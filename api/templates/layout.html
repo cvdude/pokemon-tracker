@@ -39,7 +39,10 @@
 {% block content %}
 {% endblock %}
 
+{% include "components/wishlist_modal.html" %}
+
     <script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/wishlist.js') }}"></script>
 
 </div>
 
