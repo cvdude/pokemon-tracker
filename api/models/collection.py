@@ -94,6 +94,12 @@ def ensure_collection_schema():
                 if name not in columns:
                     conn.execute(f"ALTER TABLE collection_items ADD COLUMN {name} {definition}")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_card_user ON collection_items (card_id, user_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_card ON collection_items (user_id, card_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_updated ON collection_items (user_id, updated_at DESC)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_collection_items_user_storage ON collection_items (user_id, storage_location)")
+        variant_columns = {item["name"] for item in conn.execute("PRAGMA table_info(variants)")}
+        if "source_variant_id" in variant_columns:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_variants_card_source ON variants (card_id, source_variant_id)")
         conn.execute(
             """
             INSERT INTO collection_items (user_id, card_id, quantity, condition, variant, language, storage_location, notes, is_favorite, created_at, updated_at)

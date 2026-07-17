@@ -25,6 +25,12 @@
             <a class="nav-link" href="/admin">Admin</a>
         </div>
 
+        <form class="d-flex ms-auto" action="/collection" method="get" role="search">
+            <input type="hidden" name="ownership" value="all">
+            <input class="form-control form-control-sm me-2" type="search" name="q" placeholder="Search all cards" aria-label="Search all cards">
+            <button class="btn btn-outline-light btn-sm" type="submit">Search</button>
+        </form>
+
     </div>
 </nav>
 

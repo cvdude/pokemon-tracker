@@ -1,5 +1,7 @@
-from flask import Blueprint, render_template
 import sqlite3
+from urllib.parse import urlencode
+
+from flask import Blueprint, render_template, request
 
 from config import DATABASE
 from models.collection import DEFAULT_USER_ID
@@ -7,51 +9,142 @@ from models.collection import DEFAULT_USER_ID
 
 collection = Blueprint("collection", __name__)
 
+PAGE_SIZE = 250
+SORT_COLUMNS = {
+    "name": "c.name COLLATE NOCASE",
+    "set": "s.name COLLATE NOCASE",
+    "number": "CASE WHEN c.number GLOB '[0-9]*' THEN CAST(c.number AS INTEGER) END, c.number COLLATE NOCASE",
+    "rarity": "c.rarity COLLATE NOCASE",
+    "quantity": "COALESCE(ct.total_quantity, 0)",
+    "updated": "ct.last_updated",
+}
+
+
+def _has_imported_variant_ids(conn):
+    return "source_variant_id" in {
+        row["name"] for row in conn.execute("PRAGMA table_info(variants)").fetchall()
+    }
+
+
+def _master_filter(value):
+    """Build a card-level Master Set completion expression."""
+    fallback_complete = "COALESCE(ct.total_quantity, 0) > 0"
+    if value not in {"complete", "incomplete"}:
+        return None
+    complete = f"""
+        CASE WHEN EXISTS (
+            SELECT 1 FROM variants v
+            WHERE v.card_id = c.id AND v.source_variant_id IS NOT NULL AND v.source_variant_id <> ''
+        ) THEN NOT EXISTS (
+            SELECT 1 FROM variants v
+            WHERE v.card_id = c.id AND v.source_variant_id IS NOT NULL AND v.source_variant_id <> ''
+              AND NOT EXISTS (
+                  SELECT 1 FROM collection_items ci
+                  WHERE ci.user_id = ? AND ci.card_id = c.id AND ci.quantity > 0
+                    AND (ci.source_variant_id = v.source_variant_id
+                         OR ((ci.source_variant_id IS NULL OR ci.source_variant_id = '')
+                             AND LOWER(TRIM(COALESCE(ci.custom_variant, ci.variant))) = LOWER(TRIM(COALESCE(v.name, v.variant_type)))))
+              )
+        ) ELSE {fallback_complete} END
+    """
+    return complete if value == "complete" else f"NOT ({complete})"
+
 
 @collection.route("/collection")
 def collection_page():
+    query = request.args.get("q", "").strip()
+    ownership = request.args.get("ownership", "owned").lower()
+    ownership = ownership if ownership in {"owned", "missing", "all"} else "owned"
+    duplicates = request.args.get("duplicates", "").lower() in {"1", "true", "yes"}
+    grading = request.args.get("grading", "").lower()
+    master = request.args.get("master", "").lower()
+    has_notes = request.args.get("has_notes", "").lower() in {"1", "true", "yes"}
+    sort = request.args.get("sort", "name").lower()
+    sort = sort if sort in SORT_COLUMNS else "name"
+    order = request.args.get("order", "asc").lower()
+    order = order if order in {"asc", "desc"} else "asc"
+
+    clauses, params = [], [DEFAULT_USER_ID]
+    if ownership == "owned":
+        clauses.append("COALESCE(ct.total_quantity, 0) > 0")
+    elif ownership == "missing":
+        clauses.append("COALESCE(ct.total_quantity, 0) = 0")
+    if duplicates:
+        clauses.append("COALESCE(ct.total_quantity, 0) > 1")
+    if grading == "graded":
+        clauses.append("COALESCE(ct.graded_items, 0) > 0")
+    elif grading == "ungraded":
+        clauses.append("COALESCE(ct.ungraded_items, 0) > 0")
+    if has_notes:
+        clauses.append("COALESCE(ct.has_notes, 0) > 0")
+    if query:
+        like = f"%{query}%"
+        clauses.append(
+            """(
+                c.name LIKE ? COLLATE NOCASE OR c.number LIKE ? OR c.id LIKE ?
+                OR s.name LIKE ? COLLATE NOCASE OR se.name LIKE ? COLLATE NOCASE
+                OR c.hp LIKE ? OR c.rarity LIKE ? COLLATE NOCASE
+                OR c.artist LIKE ? COLLATE NOCASE OR c.illustrator LIKE ? COLLATE NOCASE
+                OR EXISTS (SELECT 1 FROM card_types t WHERE t.card_id = c.id AND t.type LIKE ? COLLATE NOCASE)
+                OR EXISTS (SELECT 1 FROM collection_items ci WHERE ci.card_id = c.id AND ci.user_id = ?
+                           AND (ci.variant LIKE ? COLLATE NOCASE OR ci.condition LIKE ? COLLATE NOCASE
+                                OR CAST(ci.grade AS TEXT) LIKE ? OR ci.storage_location LIKE ? COLLATE NOCASE))
+            )"""
+        )
+        params.extend([like, like, like, like, like, like, like, like, like, like, DEFAULT_USER_ID, like, like, like, like])
+
     conn = sqlite3.connect(str(DATABASE))
     conn.row_factory = sqlite3.Row
     try:
-        cards = conn.execute(
-            """
-            SELECT
-                ci.id,
-                ci.quantity,
-                ci.condition,
-                ci.variant,
-                ci.storage_location,
-                ci.acquisition_date,
-                ci.purchase_price,
-                ci.notes,
-                ci.is_favorite,
-                c.id AS card_id,
-                c.name,
-                c.number,
-                c.image_small,
-                c.image_large,
-                c.rarity,
-                c.hp,
-                c.category,
-                c.artist,
-                s.name AS set_name
-            FROM collection_items ci
-            JOIN cards c ON c.id = ci.card_id
+        if master in {"complete", "incomplete"}:
+            if _has_imported_variant_ids(conn):
+                clauses.append(_master_filter(master))
+                params.append(DEFAULT_USER_ID)
+            elif master == "complete":
+                clauses.append("COALESCE(ct.total_quantity, 0) > 0")
+            else:
+                clauses.append("COALESCE(ct.total_quantity, 0) = 0")
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        rows = conn.execute(
+            f"""
+            WITH card_totals AS (
+                SELECT card_id, SUM(quantity) AS total_quantity, MAX(updated_at) AS last_updated,
+                       SUM(CASE WHEN ownership_type = 'Graded' THEN 1 ELSE 0 END) AS graded_items,
+                       SUM(CASE WHEN ownership_type = 'Raw' THEN 1 ELSE 0 END) AS ungraded_items,
+                       MAX(CASE WHEN TRIM(COALESCE(notes, '')) <> '' THEN 1 ELSE 0 END) AS has_notes
+                FROM collection_items
+                WHERE user_id = ? AND quantity > 0
+                GROUP BY card_id
+            )
+            SELECT c.id AS card_id, c.name, c.number, c.rarity, c.hp, c.category, c.artist,
+                   c.image_small, s.id AS set_id, s.name AS set_name, se.name AS series_name,
+                   COALESCE(ct.total_quantity, 0) AS quantity, ct.last_updated,
+                   COUNT(*) OVER () AS filtered_total
+            FROM cards c
             JOIN sets s ON s.id = c.set_id
-            WHERE ci.user_id = ?
-            ORDER BY c.name COLLATE NOCASE, c.number, ci.id
+            LEFT JOIN series se ON se.id = s.series_id
+            LEFT JOIN card_totals ct ON ct.card_id = c.id
+            {where}
+            ORDER BY {SORT_COLUMNS[sort]} {order.upper()}, c.id ASC
+            LIMIT {PAGE_SIZE}
             """,
-            (DEFAULT_USER_ID,),
+            params,
         ).fetchall()
     finally:
         conn.close()
 
-    total_cards = len({card["card_id"] for card in cards})
-    total_quantity = sum(card["quantity"] for card in cards)
+    filters = {
+        "q": query, "ownership": ownership, "duplicates": duplicates, "grading": grading,
+        "master": master, "has_notes": has_notes, "sort": sort, "order": order,
+    }
+    sort_urls = {}
+    for key in SORT_COLUMNS:
+        values = {name: value for name, value in filters.items() if value not in {"", False}}
+        values["sort"] = key
+        values["order"] = "desc" if key == sort and order == "asc" else "asc"
+        sort_urls[key] = f"/collection?{urlencode(values)}"
+    result_count = rows[0]["filtered_total"] if rows else 0
     return render_template(
-        "collection.html",
-        title="My Collection",
-        cards=cards,
-        total_cards=total_cards,
-        total_quantity=total_quantity,
+        "collection.html", title="Advanced Collection Search", results=rows, filters=filters,
+        sort_urls=sort_urls, result_count=result_count, displayed_count=len(rows), page_size=PAGE_SIZE,
     )

@@ -1,42 +1,19 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-end mb-4">
-    <div>
-        <h1 class="mb-1">My Collection</h1>
-        <p class="text-muted mb-0">{{ total_cards }} unique cards · {{ total_quantity }} total copies</p>
-    </div>
-</div>
+<div class="container-fluid px-2 mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4"><div><h1 class="mb-1">Advanced Collection Search</h1><p class="text-muted mb-0">{{ result_count }} matching cards{% if result_count > displayed_count %} · showing the first {{ displayed_count }}{% endif %}</p></div><a href="/collection" class="btn btn-outline-secondary">Clear filters</a></div>
 
-{% if cards %}
-<div class="table-responsive">
-    <table class="table table-striped table-hover align-middle">
-        <thead class="table-light">
-            <tr>
-                <th>Image</th><th>Card</th><th>Details</th><th>Condition / Variant</th>
-                <th>Storage</th><th>Acquired</th><th>Price</th><th>Quantity</th><th>Notes</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for card in cards %}
-            <tr>
-                <td width="100">
-                    {% if card.image_small %}<img src="{{ card.image_small }}/low.webp" width="80" class="rounded shadow-sm" alt="{{ card.name }}">{% endif %}
-                </td>
-                <td><a href="/card/{{ card.card_id }}" class="text-decoration-none"><strong>{{ card.name }}</strong></a><br><small class="text-muted">{{ card.set_name }} · #{{ card.number }}</small></td>
-                <td><small>{{ card.category }}{% if card.hp %} · HP {{ card.hp }}{% endif %}<br>{{ card.rarity }}{% if card.artist %}<br><em>{{ card.artist }}</em>{% endif %}</small></td>
-                <td>{{ card.condition }}{% if card.variant %}<br><small class="text-muted">{{ card.variant }}</small>{% endif %}</td>
-                <td>{{ card.storage_location }}</td>
-                <td>{{ card.acquisition_date or "—" }}</td>
-                <td>{% if card.purchase_price is not none %}${{ "%.2f"|format(card.purchase_price) }}{% else %}—{% endif %}</td>
-                <td>{{ card.quantity }}</td>
-                <td><small>{{ card.notes or "—" }}</small></td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <form method="get" action="/collection" class="card shadow-sm mb-4"><div class="card-body"><div class="row g-3">
+        <div class="col-lg-4"><label for="collection-search" class="form-label">Search</label><input id="collection-search" class="form-control" name="q" value="{{ filters.q }}" placeholder="Name, number, set, type, variant, location…"></div>
+        <div class="col-sm-6 col-lg-2"><label class="form-label">Ownership</label><select class="form-select" name="ownership"><option value="all" {% if filters.ownership == 'all' %}selected{% endif %}>All cards</option><option value="owned" {% if filters.ownership == 'owned' %}selected{% endif %}>Owned</option><option value="missing" {% if filters.ownership == 'missing' %}selected{% endif %}>Missing</option></select></div>
+        <div class="col-sm-6 col-lg-2"><label class="form-label">Grading</label><select class="form-select" name="grading"><option value="" {% if not filters.grading %}selected{% endif %}>All</option><option value="graded" {% if filters.grading == 'graded' %}selected{% endif %}>Graded</option><option value="ungraded" {% if filters.grading == 'ungraded' %}selected{% endif %}>Ungraded</option></select></div>
+        <div class="col-sm-6 col-lg-2"><label class="form-label">Master Set</label><select class="form-select" name="master"><option value="" {% if not filters.master %}selected{% endif %}>All</option><option value="complete" {% if filters.master == 'complete' %}selected{% endif %}>Complete</option><option value="incomplete" {% if filters.master == 'incomplete' %}selected{% endif %}>Incomplete</option></select></div>
+        <div class="col-sm-6 col-lg-2 d-flex flex-column justify-content-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="duplicates" value="1" id="duplicates" {% if filters.duplicates %}checked{% endif %}><label class="form-check-label" for="duplicates">Duplicates only</label></div><div class="form-check"><input class="form-check-input" type="checkbox" name="has_notes" value="1" id="has-notes" {% if filters.has_notes %}checked{% endif %}><label class="form-check-label" for="has-notes">Has notes</label></div></div>
+    </div><div class="mt-3"><button class="btn btn-primary" type="submit">Apply filters</button></div></div></form>
+
+    <div class="table-responsive"><table class="table table-striped table-hover align-middle"><thead class="table-light"><tr><th>Image</th><th><a href="{{ sort_urls.name }}" class="text-dark">Name{% if filters.sort == 'name' %} {% if filters.order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th><th><a href="{{ sort_urls.set }}" class="text-dark">Set{% if filters.sort == 'set' %} {% if filters.order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th><th><a href="{{ sort_urls.number }}" class="text-dark">Number{% if filters.sort == 'number' %} {% if filters.order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th><th><a href="{{ sort_urls.rarity }}" class="text-dark">Rarity{% if filters.sort == 'rarity' %} {% if filters.order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th><th class="text-end"><a href="{{ sort_urls.quantity }}" class="text-dark">Quantity{% if filters.sort == 'quantity' %} {% if filters.order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th><th><a href="{{ sort_urls.updated }}" class="text-dark">Last Updated{% if filters.sort == 'updated' %} {% if filters.order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th></tr></thead><tbody>
+        {% for card in results %}<tr><td width="70">{% if card.image_small %}<img src="{{ card.image_small }}/low.webp" width="50" height="70" class="rounded shadow-sm" style="object-fit:contain;" alt="{{ card.name }}">{% endif %}</td><td><a href="/card/{{ card.card_id }}" class="text-decoration-none"><strong>{{ card.name }}</strong></a><br><small class="text-muted">{{ card.category or '' }}{% if card.hp %} · HP {{ card.hp }}{% endif %}{% if card.artist %} · {{ card.artist }}{% endif %}</small></td><td><a href="/sets/{{ card.set_id }}" class="text-decoration-none">{{ card.set_name }}</a>{% if card.series_name %}<br><small class="text-muted">{{ card.series_name }}</small>{% endif %}</td><td>{{ card.number }}</td><td>{{ card.rarity or '—' }}</td><td class="text-end">{% if card.quantity %}<span class="badge text-bg-success">×{{ card.quantity }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td><td><small>{{ card.last_updated or '—' }}</small></td></tr>{% else %}<tr><td colspan="7" class="text-center text-muted py-5">No cards match these filters.</td></tr>{% endfor %}
+    </tbody></table></div>
 </div>
-{% else %}
-<div class="card shadow-sm"><div class="card-body text-center py-5"><h2 class="h4">Your collection is empty</h2><p class="text-muted mb-0">Add cards from a set to start tracking them.</p></div></div>
-{% endif %}
 {% endblock %}

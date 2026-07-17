@@ -63,3 +63,7 @@ Added per-card Master Set variant checklists, owned-copy details, direct edit/mo
 ## Collector dashboard expansion
 
 Added aggregate Master Set, missing-card, recent-addition, duplicate-card, and top-set metrics to the collector dashboard.
+
+## Advanced collection search and filtering
+
+Added global catalog search, composable collection filters, URL-persisted state, sortable results, and collection-query indexes.

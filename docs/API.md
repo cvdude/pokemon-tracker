@@ -10,7 +10,7 @@ All current routes are registered without a URL prefix. HTML routes render Jinja
 | GET | `/sets` | Set browser page. |
 | GET | `/sets/<set_id>` | Cards in a set, including collection progress and add controls. Returns 404 when the set is absent. |
 | GET | `/card/<card_id>` | Card-detail page with ability, attacks, weaknesses, resistances, retreat cost, and adjacent cards. Returns 404 when absent. |
-| GET | `/collection` | Current user’s collection items and totals. |
+| GET | `/collection` | Advanced collection and catalog search. Supports `q`, `ownership` (`owned`, `missing`, or `all`), `duplicates`, `grading`, `master`, `has_notes`, `sort`, and `order`; filter state is retained in the URL. |
 
 ## Card API
 
