@@ -154,6 +154,68 @@ def get_card_master_variants(connection, card_id, user_id):
     ]
 
 
+def get_master_collection_summary(connection, user_id):
+    """Return whole-collection Master Set totals with aggregate SQL only."""
+    if not _has_source_variant_ids(connection):
+        rows = connection.execute(
+            """
+            WITH set_progress AS (
+                SELECT c.set_id, COUNT(*) AS total,
+                       SUM(CASE WHEN EXISTS (
+                           SELECT 1 FROM collection_items ci
+                           WHERE ci.card_id = c.id AND ci.user_id = ? AND ci.quantity > 0
+                       ) THEN 1 ELSE 0 END) AS owned
+                FROM cards c
+                GROUP BY c.set_id
+            )
+            SELECT COALESCE(SUM(total), 0) AS total,
+                   COALESCE(SUM(owned), 0) AS owned,
+                   COALESCE(SUM(CASE WHEN total > 0 AND total = owned THEN 1 ELSE 0 END), 0) AS completed_sets
+            FROM set_progress
+            """,
+            (user_id,),
+        ).fetchone()
+        return _summary(rows)
+
+    rows = connection.execute(
+        """
+        WITH requirements AS (
+            SELECT c.set_id, c.id AS card_id, v.source_variant_id,
+                   COALESCE(v.name, v.variant_type, 'Imported Variant') AS variant_name
+            FROM cards c JOIN variants v ON v.card_id = c.id
+            WHERE v.source_variant_id IS NOT NULL AND v.source_variant_id <> ''
+            UNION ALL
+            SELECT c.set_id, c.id, NULL, 'Card'
+            FROM cards c
+            WHERE NOT EXISTS (
+                SELECT 1 FROM variants v
+                WHERE v.card_id = c.id AND v.source_variant_id IS NOT NULL AND v.source_variant_id <> ''
+            )
+        ), set_progress AS (
+            SELECT r.set_id, COUNT(*) AS total,
+                   SUM(CASE WHEN EXISTS (
+                       SELECT 1 FROM collection_items ci
+                       WHERE ci.card_id = r.card_id AND ci.user_id = ? AND ci.quantity > 0
+                         AND (
+                             r.source_variant_id IS NULL
+                             OR ci.source_variant_id = r.source_variant_id
+                             OR ((ci.source_variant_id IS NULL OR ci.source_variant_id = '')
+                                 AND LOWER(TRIM(COALESCE(ci.custom_variant, ci.variant))) = LOWER(TRIM(r.variant_name)))
+                         )
+                   ) THEN 1 ELSE 0 END) AS owned
+            FROM requirements r
+            GROUP BY r.set_id
+        )
+        SELECT COALESCE(SUM(total), 0) AS total,
+               COALESCE(SUM(owned), 0) AS owned,
+               COALESCE(SUM(CASE WHEN total > 0 AND total = owned THEN 1 ELSE 0 END), 0) AS completed_sets
+        FROM set_progress
+        """,
+        (user_id,),
+    ).fetchone()
+    return _summary(rows)
+
+
 def _fallback_card_variant(connection, card_id, user_id):
     owned = connection.execute(
         """
@@ -165,6 +227,16 @@ def _fallback_card_variant(connection, card_id, user_id):
         (card_id, user_id),
     ).fetchone()[0]
     return {"id": None, "name": "Card", "owned": bool(owned), "fallback": True}
+
+
+def _summary(row):
+    total, owned, completed_sets = row["total"], row["owned"], row["completed_sets"]
+    return {
+        "total_variants": total,
+        "owned_variants": owned,
+        "missing_variants": total - owned,
+        "completed_sets": completed_sets,
+    }
 
 
 def _progress(total, owned, imported_total, fallback_total):

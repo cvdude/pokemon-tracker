@@ -59,3 +59,7 @@ Replaced the catalog-only landing page with collector summaries, collection comp
 ## Dedicated card detail enhancements
 
 Added per-card Master Set variant checklists, owned-copy details, direct edit/move/delete actions, and batched attack-cost loading.
+
+## Collector dashboard expansion
+
+Added aggregate Master Set, missing-card, recent-addition, duplicate-card, and top-set metrics to the collector dashboard.
