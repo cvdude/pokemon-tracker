@@ -34,6 +34,7 @@ The application uses SQLite at `database/pokemon.db`. Foreign keys describe the 
 | `collection_items` | Active ownership table. `user_id` references `users.id`; `card_id` references `cards.id`. It stores raw/graded ownership type, condition, variant and custom variant, language, grading company and custom company, grade, certification number, storage, acquisition, price, notes, timestamps, and `is_trade`. It also stores purchase date/source, per-copy purchase price, estimated and previous estimated value, valuation date/source, insurance value, and ISO currency. Each row is an independent owned entry. |
 | `wishlist_items` | User wishlist entries. `user_id` references `users.id`; `card_id` references `cards.id`; nullable `source_variant_id` identifies a specific desired imported variant. It stores priority, desired condition, target price, notes, and timestamps. One user may have one card-level and one row per source variant for the same card. |
 | `backup_history` | Metadata for application-created SQLite snapshots. `filename` identifies a file in `backups/`; `operation`, `created_at`, `file_size`, and `notes` provide a restorable audit history. The snapshot itself remains a full database backup. |
+| `user_settings` | Extensible per-user preference store. Each `setting_key` has a JSON `setting_value`, allowing future preferences to be added without a table redesign. Current keys cover collection view, theme, image size, sort and filter defaults, currency, date format, and dashboard layout. |
 
 ## Catalog versus collection
 
@@ -51,7 +52,7 @@ Master Set progress is calculated at read time; it adds no ownership or catalog 
 
 ## Runtime migration
 
-At application startup, `ensure_collection_schema()` safely creates or extends `collection_items`, creates `wishlist_items`, `backup_history`, and their indexes without modifying catalog records. It then copies legacy `inventory` rows into the new table without duplicating equivalent rows.
+At application startup, `ensure_collection_schema()` safely creates or extends `collection_items`, creates `wishlist_items`, `backup_history`, and their indexes without modifying catalog records. `ensure_settings_schema()` creates `user_settings` and its index. Both migrations preserve existing data. The collection migration then copies legacy `inventory` rows into the new table without duplicating equivalent rows.
 
 ## Backup and import data
 

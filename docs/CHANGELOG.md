@@ -83,3 +83,7 @@ Added per-copy purchase, valuation, insurance, and provider metadata; value filt
 ## Backup, export and import system
 
 Added a backup workspace with versioned JSON and CSV exports for collections, inventory, wishlists, trades, purchases, and values; import preview, merge/replace handling, transaction rollback, automatic SQLite snapshots, backup history, and restore controls.
+
+## User settings and preferences
+
+Added extensible per-user preferences, a settings workspace, theme and image-size controls, collection sort and filter defaults, currency and date formatting, and configurable dashboard widget visibility and order.

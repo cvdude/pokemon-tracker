@@ -1,0 +1,7 @@
+body[data-resolved-theme="dark"] { background-color: #1a1d20 !important; color: #e9ecef; }
+body[data-resolved-theme="dark"] .card, body[data-resolved-theme="dark"] .card-header, body[data-resolved-theme="dark"] .list-group-item, body[data-resolved-theme="dark"] .table { background-color: #252a2f; color: #e9ecef; border-color: #454b52; }
+body[data-resolved-theme="dark"] .text-muted { color: #adb5bd !important; }
+body[data-resolved-theme="dark"] .text-dark { color: #f8f9fa !important; }
+body[data-resolved-theme="dark"] .bg-light, body[data-resolved-theme="dark"] .table-light { background-color: #252a2f !important; color: #e9ecef !important; }
+body[data-card-image-size="small"] img[data-card-image], body[data-card-image-size="small"] .card-image { width: 42px !important; height: 59px !important; }
+body[data-card-image-size="large"] img[data-card-image], body[data-card-image-size="large"] .card-image { width: 90px !important; height: 126px !important; }

@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request
 
 from config import DATABASE
 from models.collection import DEFAULT_USER_ID
+from models.settings import get_settings
 
 
 collection = Blueprint("collection", __name__)
@@ -52,24 +53,27 @@ def _master_filter(value):
 
 @collection.route("/collection")
 def collection_page():
+    preferences = get_settings(DEFAULT_USER_ID)
+    has_query_filters = any(name in request.args for name in ("q", "ownership", "duplicates", "grading", "master", "has_notes", "wishlist", "trade", "wishlist_priority", "never_valued", "value_changed", "purchased_month", "purchased_year", "sort", "order"))
+    defaults = preferences["default_filters"] if not has_query_filters else {}
     query = request.args.get("q", "").strip()
-    ownership = request.args.get("ownership", "owned").lower()
+    ownership = request.args.get("ownership", defaults.get("ownership", "owned")).lower()
     ownership = ownership if ownership in {"owned", "missing", "all"} else "owned"
-    duplicates = request.args.get("duplicates", "").lower() in {"1", "true", "yes"}
+    duplicates = request.args.get("duplicates", defaults.get("duplicates", "")).lower() in {"1", "true", "yes"} if isinstance(defaults.get("duplicates", ""), str) else bool(defaults.get("duplicates", False))
     grading = request.args.get("grading", "").lower()
     master = request.args.get("master", "").lower()
-    has_notes = request.args.get("has_notes", "").lower() in {"1", "true", "yes"}
-    wishlist = request.args.get("wishlist", "").lower() in {"1", "true", "yes"}
-    trade = request.args.get("trade", "").lower() in {"1", "true", "yes"}
+    has_notes = request.args.get("has_notes", defaults.get("has_notes", "")).lower() in {"1", "true", "yes"} if isinstance(defaults.get("has_notes", ""), str) else bool(defaults.get("has_notes", False))
+    wishlist = request.args.get("wishlist", defaults.get("wishlist", "")).lower() in {"1", "true", "yes"} if isinstance(defaults.get("wishlist", ""), str) else bool(defaults.get("wishlist", False))
+    trade = request.args.get("trade", defaults.get("trade", "")).lower() in {"1", "true", "yes"} if isinstance(defaults.get("trade", ""), str) else bool(defaults.get("trade", False))
     wishlist_priority = request.args.get("wishlist_priority", "").title()
     wishlist_priority = wishlist_priority if wishlist_priority in {"Low", "Medium", "High"} else ""
     never_valued = request.args.get("never_valued", "").lower() in {"1", "true", "yes"}
     value_changed = request.args.get("value_changed", "").lower() in {"1", "true", "yes"}
     purchased_month = request.args.get("purchased_month", "").lower() in {"1", "true", "yes"}
     purchased_year = request.args.get("purchased_year", "").lower() in {"1", "true", "yes"}
-    sort = request.args.get("sort", "name").lower()
+    sort = request.args.get("sort", preferences["default_sort"]).lower()
     sort = sort if sort in SORT_COLUMNS else "name"
-    order = request.args.get("order", "asc").lower()
+    order = request.args.get("order", preferences["default_order"]).lower()
     order = order if order in {"asc", "desc"} else "asc"
 
     clauses, params = [], [DEFAULT_USER_ID]

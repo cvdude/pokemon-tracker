@@ -219,3 +219,15 @@ CREATE TABLE backup_history (
 
 CREATE INDEX idx_backup_history_created
 ON backup_history (created_at DESC);
+
+CREATE TABLE user_settings (
+    user_id INTEGER NOT NULL,
+    setting_key TEXT NOT NULL,
+    setting_value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, setting_key),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX idx_user_settings_user
+ON user_settings (user_id, setting_key);
